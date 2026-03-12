@@ -45,9 +45,10 @@
 
         <div style="text-align:center;margin-top:20px;">
           <p style="font-size:0.8rem;color:var(--text-muted);">Demo credentials:</p>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;">
-            <button class="btn btn-outline btn-sm" onclick="fillDemo('patient')">👤 Patient Demo</button>
-            <button class="btn btn-outline btn-sm" onclick="fillDemo('doctor')">👨‍⚕️ Doctor Demo</button>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:8px;">
+            <button class="btn btn-outline btn-sm" onclick="fillDemo('patient')">👤 Patient</button>
+            <button class="btn btn-outline btn-sm" onclick="fillDemo('doctor')">👨‍⚕️ Doctor</button>
+            <button class="btn btn-outline btn-sm" onclick="fillDemo('pharmacy')">💊 Pharmacy</button>
           </div>
         </div>
       </div>
@@ -174,28 +175,46 @@
       }
     }
 
+    // Updated fillDemo: fills credentials and automatically logs in
     async function fillDemo(role) {
+      let phone, password, name, village, age;
+      
       if (role === 'patient') {
-        // Create demo patient if not exists
-        try {
-          await API.post('/auth/register', {
-            name: 'Ramu Kumar', phone: '9876543210', village: 'Rampur', age: 35,
-            role: 'patient', password: 'demo123'
-          });
-        } catch { /* already exists */ }
-        document.getElementById('login-phone').value = '9876543210';
-        document.getElementById('login-password').value = 'demo123';
-      } else {
-        try {
-          await API.post('/auth/register', {
-            name: 'Dr. Priya Sharma', phone: '9876543211', village: 'District Hospital',
-            age: 42, role: 'doctor', password: 'demo123'
-          });
-        } catch { /* already exists */ }
-        document.getElementById('login-phone').value = '9876543211';
-        document.getElementById('login-password').value = 'demo123';
+        phone = '9876543210';
+        password = 'demo123';
+        name = 'Ramu Kumar';
+        village = 'Rampur';
+        age = 35;
+      } else if (role === 'doctor') {
+        phone = '9876543211';
+        password = 'demo123';
+        name = 'Dr. Priya Sharma';
+        village = 'District Hospital';
+        age = 42;
+      } else if (role === 'pharmacy') {
+        phone = '9876543212';
+        password = 'demo123';
+        name = 'City Pharmacy';
+        village = 'Main Bazaar';
+        age = 30;
       }
-      Toast.info('Demo credentials filled. Click Sign In.');
+
+      // Silently try to register the demo account (if it doesn't exist)
+      try {
+        await API.post('/auth/register', {
+          name, phone, village, age,
+          role, password
+        });
+      } catch {
+        // Ignore – account already exists
+      }
+
+      // Fill the login form
+      document.getElementById('login-phone').value = phone;
+      document.getElementById('login-password').value = password;
+
+      // Automatically submit login
+      await handleLogin();
     }
 
     // Enter key support

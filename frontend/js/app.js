@@ -21,10 +21,12 @@ const Auth = {
   requireAuth(redirectTo = '/login.html') {
     if (!this.isLoggedIn()) window.location.href = redirectTo;
   },
+  // ✅ Updated to include pharmacy role
   redirectIfLoggedIn() {
     if (!this.isLoggedIn()) return;
     const role = this.user?.role;
     if (role === 'doctor') window.location.href = '/doctor-dashboard.html';
+    else if (role === 'pharmacy') window.location.href = '/pharmacy-dashboard.html';
     else window.location.href = '/patient-dashboard.html';
   }
 };
