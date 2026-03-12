@@ -18,5 +18,25 @@
     "village": "District Hospital",
     "age": 42,
     "createdAt": "2026-03-12T13:23:54.839Z"
+  },
+  {
+    "id": "3fc74751-e089-4a4e-b857-0b57cb58ac12",
+    "name": "Aditya Sharma",
+    "phone": "7558621080",
+    "password": "$2a$10$prr9CbkO6jguNI5PxIDYKOg7IDDwKq4n1IihHGAw3YaryuUdMteQO",
+    "role": "doctor",
+    "village": "Palghar",
+    "age": 19,
+    "createdAt": "2026-03-12T19:11:07.190Z"
+  },
+  {
+    "id": "5f092d4f-da27-47f6-8bef-d9949e5f9e37",
+    "name": "Chirag Patil",
+    "phone": "9845231672",
+    "password": "$2a$10$cctt/UXzRDr8yo71wMcKh.lyx70ED.VoVTIPy771pIMYjUToMoZFy",
+    "role": "pharmacy",
+    "village": "Nandore",
+    "age": 20,
+    "createdAt": "2026-03-12T19:17:52.783Z"
   }
 ]
