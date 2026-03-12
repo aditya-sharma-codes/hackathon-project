@@ -28,6 +28,9 @@ module.exports = (readData, writeData) => {
         role, // 'patient' | 'doctor' | 'pharmacy'
         village: village || '',
         age: age || null,
+        conditions: '',        // optional, can be updated later
+        allergies: '',         // optional
+        emergencyContact: '',  // optional
         createdAt: new Date().toISOString()
       };
       users.push(user);
@@ -62,6 +65,24 @@ module.exports = (readData, writeData) => {
       .filter(u => u.role === 'doctor')
       .map(d => ({ id: d.id, name: d.name, village: d.village }));
     res.json(doctors);
+  });
+
+  // Get user public profile by ID (for QR scanning)
+  router.get('/users/:id', (req, res) => {
+    const users = readData('users');
+    const user = users.find(u => u.id === req.params.id);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    // Return only public information
+    res.json({
+      id: user.id,
+      name: user.name,
+      age: user.age || '',
+      village: user.village || '',
+      conditions: user.conditions || '',
+      allergies: user.allergies || '',
+      emergencyContact: user.emergencyContact || ''
+    });
   });
 
   return router;
