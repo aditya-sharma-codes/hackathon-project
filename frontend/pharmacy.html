@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Pharmacy – GramHealth</title>
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#16a34a">
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <div id="offline-banner" class="offline-alert">
+    <span>📵</span> Offline – Showing last known pharmacy inventory
+  </div>
+
+  <!-- Nav -->
+  <nav class="nav">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <a href="javascript:history.back()" style="text-decoration:none;color:var(--text-muted);font-size:1.2rem;">←</a>
+      <div class="nav-brand">💊 Gram<span class="dot">Health</span></div>
+    </div>
+    <button onclick="Auth.logout()" style="background:none;border:none;cursor:pointer;font-size:0.82rem;color:var(--text-muted);">Logout</button>
+  </nav>
+
+  <!-- Tabs -->
+  <div style="background:white;border-bottom:1px solid var(--border);display:flex;position:sticky;top:57px;z-index:90;">
+    <button class="bottom-nav-item active" id="tab-search" onclick="switchTab('search')" style="position:static;padding:12px 4px;font-size:0.72rem;">
+      <span class="icon">🔍</span> Search
+    </button>
+    <button class="bottom-nav-item" id="tab-nearby" onclick="switchTab('nearby')" style="position:static;padding:12px 4px;font-size:0.72rem;">
+      <span class="icon">📍</span> Nearby
+    </button>
+    <button class="bottom-nav-item" id="tab-update" onclick="switchTab('update')" style="position:static;padding:12px 4px;font-size:0.72rem;">
+      <span class="icon">📦</span> Update
+    </button>
+  </div>
+
+  <!-- ─── SEARCH TAB ────────────────────────── -->
+  <div id="panel-search" class="content">
+    <div style="padding:4px 0 16px;">
+      <div style="font-family:'Fraunces',serif;font-size:1.3rem;font-weight:700;">💊 Find Medicines</div>
+      <div style="font-size:0.82rem;color:var(--text-muted);">Search across all nearby pharmacies</div>
+    </div>
+
+    <div class="search-bar">
+      <span>🔍</span>
+      <input type="text" id="medicine-search" placeholder="Search medicine name (e.g. Paracetamol)..."
+        oninput="handleSearch(this.value)">
+    </div>
+
+    <!-- Quick search buttons -->
+    <div class="symptom-tags" style="margin-bottom:16px;">
+      <span class="symptom-tag" onclick="quickSearch('Paracetamol')">Paracetamol</span>
+      <span class="symptom-tag" onclick="quickSearch('ORS')">ORS</span>
+      <span class="symptom-tag" onclick="quickSearch('Metformin')">Metformin</span>
+      <span class="symptom-tag" onclick="quickSearch('Amoxicillin')">Amoxicillin</span>
+      <span class="symptom-tag" onclick="quickSearch('Cetirizine')">Cetirizine</span>
+      <span class="symptom-tag" onclick="quickSearch('Insulin')">Insulin</span>
+    </div>
+
+    <div id="search-results">
+      <div class="empty-state">
+        <div class="empty-icon">🔍</div>
+        <p>Search for a medicine to see availability</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── NEARBY TAB ───────────────────────── -->
+  <div id="panel-nearby" class="content hidden">
+    <div style="padding:4px 0 16px;">
+      <div style="font-family:'Fraunces',serif;font-size:1.3rem;font-weight:700;">📍 Nearby Pharmacies</div>
+      <div style="font-size:0.82rem;color:var(--text-muted);">All pharmacies in your area</div>
+    </div>
+
+    <div id="pharmacies-list">
+      <div style="text-align:center;padding:24px;color:var(--text-muted);">
+        <div class="spinner" style="border-color:rgba(22,163,74,0.3);border-top-color:var(--primary);margin:0 auto 8px;"></div>
+        Loading pharmacies...
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── UPDATE TAB (Pharmacy Admin) ─────── -->
+  <div id="panel-update" class="content hidden">
+    <div style="padding:4px 0 16px;">
+      <div style="font-family:'Fraunces',serif;font-size:1.3rem;font-weight:700;">📦 Update Stock</div>
+      <div style="font-size:0.82rem;color:var(--text-muted);">For pharmacy owners to update inventory</div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">🏪 Update Medicine Stock</div>
+      <div class="form-group">
+        <label class="form-label">Pharmacy</label>
+        <select id="pharmacy-select" class="form-select">
+          <option value="">Loading...</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Medicine Name</label>
+        <input type="text" id="update-medicine-name" class="form-input" placeholder="e.g. Paracetamol 500mg">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="form-group">
+          <label class="form-label">Quantity</label>
+          <input type="number" id="update-quantity" class="form-input" placeholder="0" min="0">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Price (₹)</label>
+          <input type="number" id="update-price" class="form-input" placeholder="0" min="0">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Available</label>
+        <select id="update-available" class="form-select">
+          <option value="true">✅ In Stock</option>
+          <option value="false">❌ Out of Stock</option>
+        </select>
+      </div>
+      <div id="update-error" class="form-error"></div>
+      <button class="btn btn-primary btn-full" onclick="updateStock()">
+        📤 Update Stock
+      </button>
+    </div>
+
+    <!-- Bulk update tips -->
+    <div class="card" style="background:var(--green-50);border-color:var(--green-200);">
+      <div class="card-header" style="color:var(--green-800);">💡 Stock Management Tips</div>
+      <ul style="font-size:0.83rem;color:var(--green-700);padding-left:16px;line-height:1.8;">
+        <li>Update stock daily for accuracy</li>
+        <li>Mark as "Out of Stock" when quantity is 0</li>
+        <li>Keep prices up to date for patients</li>
+        <li>Add new medicines using the form above</li>
+      </ul>
+    </div>
+  </div>
+
+  <script src="/js/app.js"></script>
+  <script>
+    let allPharmacies = [];
+    let searchTimeout = null;
+    let pollInterval;
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      Auth.requireAuth();
+      await loadPharmacies();
+      startPolling();
+    });
+
+    window.addEventListener('beforeunload', stopPolling);
+
+    function startPolling() {
+      if (pollInterval) clearInterval(pollInterval);
+      pollInterval = setInterval(() => {
+        if (navigator.onLine) loadPharmacies(true);
+      }, 30000);
+    }
+
+    function stopPolling() {
+      if (pollInterval) clearInterval(pollInterval);
+    }
+
+    async function loadPharmacies(silent = false) {
+      try {
+        const data = await API.get('/pharmacy');
+        allPharmacies = data;
+        // Cache offline
+        localStorage.setItem('gh_pharmacies_cache', JSON.stringify(data));
+        renderPharmacies(data);
+        populatePharmacySelect(data);
+      } catch (err) {
+        // Load from cache if offline
+        const cached = localStorage.getItem('gh_pharmacies_cache');
+        if (cached) {
+          allPharmacies = JSON.parse(cached);
+          if (!silent) renderPharmacies(allPharmacies);
+          populatePharmacySelect(allPharmacies);
+          if (!silent) Toast.warning('Showing cached pharmacy data');
+        } else {
+          if (!silent) document.getElementById('pharmacies-list').innerHTML =
+            '<div class="empty-state"><div class="empty-icon">📵</div><p>Cannot load pharmacies offline</p></div>';
+        }
+      }
+    }
+
+    function renderPharmacies(list) {
+      const el = document.getElementById('pharmacies-list');
+      el.innerHTML = list.map(ph => `
+        <div class="card" style="margin-bottom:16px;">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
+            <div>
+              <div style="font-weight:700;font-size:0.95rem;">${ph.pharmacyName}</div>
+              <div style="font-size:0.78rem;color:var(--text-muted);">📍 ${ph.location}</div>
+            </div>
+            <span class="badge badge-green">📍 ${ph.distance}</span>
+          </div>
+          <div style="border-top:1px solid var(--border);padding-top:10px;">
+            ${ph.medicines.slice(0,5).map(m => `
+              <div class="med-item">
+                <div>
+                  <div class="med-name">${m.name}</div>
+                  <div class="med-info">Qty: ${m.quantity}</div>
+                </div>
+                <div style="text-align:right;">
+                  <div class="med-price">₹${m.price}</div>
+                  ${m.available
+                    ? '<div style="font-size:0.72rem;color:var(--green-600);">✅ In Stock</div>'
+                    : '<div style="font-size:0.72rem;color:var(--red-500);">❌ Out of Stock</div>'}
+                </div>
+              </div>`).join('')}
+            ${ph.medicines.length > 5
+              ? `<div style="text-align:center;margin-top:8px;"><button class="btn btn-outline btn-sm" onclick="showAllMedicines('${ph.id}')">View all ${ph.medicines.length} medicines</button></div>`
+              : ''}
+          </div>
+        </div>`
+      ).join('');
+    }
+
+    function populatePharmacySelect(list) {
+      const select = document.getElementById('pharmacy-select');
+      select.innerHTML = list.map(ph =>
+        `<option value="${ph.id}">${ph.pharmacyName} – ${ph.location}</option>`
+      ).join('');
+    }
+
+    function handleSearch(value) {
+      clearTimeout(searchTimeout);
+      if (!value.trim()) {
+        document.getElementById('search-results').innerHTML = `
+          <div class="empty-state"><div class="empty-icon">🔍</div><p>Search for a medicine</p></div>`;
+        return;
+      }
+      searchTimeout = setTimeout(() => searchMedicine(value), 300);
+    }
+
+    async function searchMedicine(query) {
+      document.getElementById('search-results').innerHTML = `
+        <div style="text-align:center;padding:20px;color:var(--text-muted);">
+          <div class="spinner" style="border-color:rgba(22,163,74,0.3);border-top-color:var(--primary);margin:0 auto 8px;"></div>
+          Searching...
+        </div>`;
+      try {
+        const results = await API.get(`/pharmacy/search?q=${encodeURIComponent(query)}`);
+        renderSearchResults(results, query);
+      } catch {
+        // offline fallback
+        const results = allPharmacies.map(ph => {
+          const matches = ph.medicines.filter(m =>
+            m.name.toLowerCase().includes(query.toLowerCase())
+          );
+          return matches.length ? { ...ph, medicines: matches } : null;
+        }).filter(Boolean);
+        renderSearchResults(results, query);
+      }
+    }
+
+    function renderSearchResults(results, query) {
+      const el = document.getElementById('search-results');
+      if (!results.length) {
+        el.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-icon">😔</div>
+            <p>"${query}" not found in nearby pharmacies</p>
+            <p style="margin-top:8px;font-size:0.8rem;">Try asking your doctor for alternative medicines.</p>
+          </div>`;
+        return;
+      }
+
+      el.innerHTML = `
+        <div style="font-size:0.82rem;color:var(--text-muted);margin-bottom:12px;">
+          Found in ${results.length} pharmacy${results.length > 1 ? 's' : ''}
+        </div>` +
+        results.map(ph => `
+          <div class="card">
+            <div style="font-weight:700;margin-bottom:4px;">${ph.pharmacyName}</div>
+            <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:10px;">📍 ${ph.location} • ${ph.distance}</div>
+            ${ph.medicines.map(m => `
+              <div class="med-item">
+                <div>
+                  <div class="med-name">${m.name}</div>
+                  <div class="med-info">Available qty: ${m.quantity}</div>
+                </div>
+                <div style="text-align:right;">
+                  <div class="med-price">₹${m.price}</div>
+                  ${m.available && m.quantity > 0
+                    ? '<span class="badge badge-green">✅ Available</span>'
+                    : '<span class="badge badge-red">❌ Not Available</span>'}
+                </div>
+              </div>`).join('')}
+          </div>`).join('');
+    }
+
+    function quickSearch(medicine) {
+      document.getElementById('medicine-search').value = medicine;
+      searchMedicine(medicine);
+    }
+
+    function showAllMedicines(pharmacyId) {
+      const ph = allPharmacies.find(p => p.id === pharmacyId);
+      if (!ph) return;
+      document.getElementById('medicine-search').value = '';
+      switchTab('nearby');
+      // Scroll to pharmacy (simplified)
+      Toast.info(`Showing all medicines for ${ph.pharmacyName}`);
+    }
+
+    async function updateStock() {
+      const pharmacyId = document.getElementById('pharmacy-select').value;
+      const medicineName = document.getElementById('update-medicine-name').value.trim();
+      const quantity = parseInt(document.getElementById('update-quantity').value);
+      const price = parseInt(document.getElementById('update-price').value);
+      const available = document.getElementById('update-available').value === 'true';
+      const errorEl = document.getElementById('update-error');
+
+      if (!pharmacyId || !medicineName) {
+        errorEl.textContent = 'Please fill in all required fields';
+        return;
+      }
+
+      try {
+        await API.patch(`/pharmacy/${pharmacyId}/medicine`, { medicineName, quantity, price, available });
+        Toast.success('Stock updated successfully!');
+        await loadPharmacies(true); // silent refresh
+        errorEl.textContent = '';
+        document.getElementById('update-medicine-name').value = '';
+        document.getElementById('update-quantity').value = '';
+        document.getElementById('update-price').value = '';
+      } catch (err) {
+        errorEl.textContent = err.message;
+      }
+    }
+
+    function switchTab(tab) {
+      ['search', 'nearby', 'update'].forEach(t => {
+        document.getElementById(`panel-${t}`).classList.toggle('hidden', t !== tab);
+        document.getElementById(`tab-${t}`)?.classList.toggle('active', t === tab);
+      });
+    }
+  </script>
+</body>
+</html>

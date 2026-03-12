@@ -1,0 +1,36 @@
+[
+  {
+    "id": "f87676fd-226f-43c7-81ef-224540b7a2c1",
+    "patientId": "0caa0f80-2e94-41d9-a11c-db8d16a486ab",
+    "patientName": "Ramu Kumar",
+    "patientVillage": "Rampur",
+    "patientAge": 35,
+    "doctorId": "6e72e49f-9e1f-4a55-a142-44f8e1d0448b",
+    "doctorName": "Dr. Priya Sharma",
+    "symptoms": "fever 2 days",
+    "triageResult": null,
+    "urgency": "medium",
+    "notes": "",
+    "status": "completed",
+    "roomId": "d2a321a6-a193-4d1e-908a-e4d4b285d1ae",
+    "createdAt": "2026-03-12T14:20:58.907Z",
+    "updatedAt": "2026-03-12T14:21:33.538Z"
+  },
+  {
+    "id": "4eac5569-808e-4226-9979-66d454254484",
+    "patientId": "0caa0f80-2e94-41d9-a11c-db8d16a486ab",
+    "patientName": "Ramu Kumar",
+    "patientVillage": "Rampur",
+    "patientAge": 35,
+    "doctorId": "6e72e49f-9e1f-4a55-a142-44f8e1d0448b",
+    "doctorName": "Dr. Priya Sharma",
+    "symptoms": "test",
+    "triageResult": null,
+    "urgency": "medium",
+    "notes": "",
+    "status": "completed",
+    "roomId": "58e25a29-c43c-4499-b0b8-b83cec79c2be",
+    "createdAt": "2026-03-12T14:21:41.056Z",
+    "updatedAt": "2026-03-12T14:23:04.936Z"
+  }
+]

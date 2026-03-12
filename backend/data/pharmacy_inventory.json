@@ -1,0 +1,140 @@
+[
+  {
+    "id": "ph001",
+    "pharmacyName": "Village Medical Store",
+    "location": "Main Bazaar, Rampur",
+    "distance": "0.5 km",
+    "medicines": [
+      {
+        "name": "Paracetamol 500mg",
+        "quantity": 150,
+        "price": 2,
+        "available": true
+      },
+      {
+        "name": "Amoxicillin 250mg",
+        "quantity": 80,
+        "price": 8,
+        "available": true
+      },
+      {
+        "name": "ORS Sachets",
+        "quantity": 200,
+        "price": 5,
+        "available": true
+      },
+      {
+        "name": "Metformin 500mg",
+        "quantity": 60,
+        "price": 4,
+        "available": true
+      },
+      {
+        "name": "Amlodipine 5mg",
+        "quantity": 45,
+        "price": 6,
+        "available": true
+      },
+      {
+        "name": "Cetirizine 10mg",
+        "quantity": 120,
+        "price": 3,
+        "available": true
+      },
+      {
+        "name": "Omeprazole 20mg",
+        "quantity": 90,
+        "price": 7,
+        "available": true
+      },
+      {
+        "name": "Azithromycin 250mg",
+        "quantity": 0,
+        "price": 15,
+        "available": false
+      }
+    ]
+  },
+  {
+    "id": "ph002",
+    "pharmacyName": "Jan Aushadhi Kendra",
+    "location": "Near Panchayat Office, Sitapur",
+    "distance": "1.2 km",
+    "medicines": [
+      {
+        "name": "Paracetamol 500mg",
+        "quantity": 300,
+        "price": 1,
+        "available": true
+      },
+      {
+        "name": "Iron Folic Acid",
+        "quantity": 180,
+        "price": 2,
+        "available": true
+      },
+      {
+        "name": "Vitamin D3",
+        "quantity": 100,
+        "price": 3,
+        "available": true
+      },
+      {
+        "name": "Metformin 500mg",
+        "quantity": 120,
+        "price": 2,
+        "available": true
+      },
+      {
+        "name": "Atenolol 50mg",
+        "quantity": 75,
+        "price": 4,
+        "available": true
+      },
+      {
+        "name": "Azithromycin 250mg",
+        "quantity": 40,
+        "price": 10,
+        "available": true
+      }
+    ]
+  },
+  {
+    "id": "ph003",
+    "pharmacyName": "Gram Seva Medical",
+    "location": "Block Road, Chandpur",
+    "distance": "3.1 km",
+    "medicines": [
+      {
+        "name": "Insulin Regular",
+        "quantity": 20,
+        "price": 180,
+        "available": true
+      },
+      {
+        "name": "Salbutamol Inhaler",
+        "quantity": 15,
+        "price": 85,
+        "available": true
+      },
+      {
+        "name": "Doxycycline 100mg",
+        "quantity": 60,
+        "price": 12,
+        "available": true
+      },
+      {
+        "name": "Ciprofloxacin 500mg",
+        "quantity": 55,
+        "price": 18,
+        "available": true
+      },
+      {
+        "name": "Pantoprazole 40mg",
+        "quantity": 80,
+        "price": 5,
+        "available": true
+      }
+    ]
+  }
+]

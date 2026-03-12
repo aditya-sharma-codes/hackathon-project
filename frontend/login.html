@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Login – GramHealth</title>
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#16a34a">
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <div id="offline-banner" class="offline-alert">
+    <span>📵</span> Offline – Login not available. Open app if already installed.
+  </div>
+
+  <div class="page">
+    <div class="auth-container">
+      <!-- Logo -->
+      <div class="auth-logo">
+        <div class="logo-icon">🏥</div>
+        <h2>GramHealth</h2>
+        <p style="color:var(--text-muted);font-size:0.88rem;">Rural TeleHealth Access System</p>
+      </div>
+
+      <!-- Tabs -->
+      <div class="auth-tabs">
+        <button class="auth-tab active" id="tab-login" onclick="switchTab('login')">Sign In</button>
+        <button class="auth-tab" id="tab-register" onclick="switchTab('register')">Register</button>
+      </div>
+
+      <!-- Login Form -->
+      <div id="login-form">
+        <div class="form-group">
+          <label class="form-label">📱 Phone Number</label>
+          <input type="tel" id="login-phone" class="form-input" placeholder="Enter your phone number" maxlength="10">
+        </div>
+        <div class="form-group">
+          <label class="form-label">🔒 Password</label>
+          <input type="password" id="login-password" class="form-input" placeholder="Enter password">
+        </div>
+        <div id="login-error" class="form-error"></div>
+        <button class="btn btn-primary btn-full" id="login-btn" onclick="handleLogin()">
+          Sign In →
+        </button>
+
+        <div style="text-align:center;margin-top:20px;">
+          <p style="font-size:0.8rem;color:var(--text-muted);">Demo credentials:</p>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;">
+            <button class="btn btn-outline btn-sm" onclick="fillDemo('patient')">👤 Patient Demo</button>
+            <button class="btn btn-outline btn-sm" onclick="fillDemo('doctor')">👨‍⚕️ Doctor Demo</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Register Form -->
+      <div id="register-form" class="hidden">
+        <div class="form-group">
+          <label class="form-label">👤 Full Name</label>
+          <input type="text" id="reg-name" class="form-input" placeholder="Enter your full name">
+        </div>
+        <div class="form-group">
+          <label class="form-label">📱 Phone Number</label>
+          <input type="tel" id="reg-phone" class="form-input" placeholder="10-digit mobile number" maxlength="10">
+        </div>
+        <div class="form-group">
+          <label class="form-label">🏘️ Village / Town</label>
+          <input type="text" id="reg-village" class="form-input" placeholder="Your village or town name">
+        </div>
+        <div class="form-group">
+          <label class="form-label">🎂 Age</label>
+          <input type="number" id="reg-age" class="form-input" placeholder="Your age" min="1" max="120">
+        </div>
+        <div class="form-group">
+          <label class="form-label">👥 I am a</label>
+          <select id="reg-role" class="form-select">
+            <option value="patient">Patient</option>
+            <option value="doctor">Doctor / Healthcare Worker</option>
+            <option value="pharmacy">Pharmacy Owner</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">🔒 Password</label>
+          <input type="password" id="reg-password" class="form-input" placeholder="Create password (min 6 chars)" minlength="6">
+        </div>
+        <div id="reg-error" class="form-error"></div>
+        <button class="btn btn-primary btn-full" id="reg-btn" onclick="handleRegister()">
+          Create Account →
+        </button>
+      </div>
+
+      <div style="text-align:center;margin-top:24px;">
+        <a href="/" style="color:var(--text-muted);font-size:0.82rem;text-decoration:none;">← Back to home</a>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/app.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // Redirect if already logged in
+      Auth.redirectIfLoggedIn();
+    });
+
+    function switchTab(tab) {
+      document.getElementById('tab-login').classList.toggle('active', tab === 'login');
+      document.getElementById('tab-register').classList.toggle('active', tab === 'register');
+      document.getElementById('login-form').classList.toggle('hidden', tab !== 'login');
+      document.getElementById('register-form').classList.toggle('hidden', tab !== 'register');
+    }
+
+    async function handleLogin() {
+      const phone = document.getElementById('login-phone').value.trim();
+      const password = document.getElementById('login-password').value;
+      const errorEl = document.getElementById('login-error');
+      const btn = document.getElementById('login-btn');
+
+      if (!phone || !password) {
+        errorEl.textContent = 'Please fill in all fields';
+        return;
+      }
+
+      btn.disabled = true;
+      btn.innerHTML = '<div class="spinner"></div> Signing in...';
+      errorEl.textContent = '';
+
+      try {
+        const data = await API.post('/auth/login', { phone, password });
+        Auth.login(data.token, data.user);
+        Toast.success(`Welcome back, ${data.user.name}!`);
+        setTimeout(() => Auth.redirectIfLoggedIn(), 800);
+      } catch (err) {
+        errorEl.textContent = err.message;
+        btn.disabled = false;
+        btn.innerHTML = 'Sign In →';
+      }
+    }
+
+    async function handleRegister() {
+      const name = document.getElementById('reg-name').value.trim();
+      const phone = document.getElementById('reg-phone').value.trim();
+      const village = document.getElementById('reg-village').value.trim();
+      const age = document.getElementById('reg-age').value;
+      const role = document.getElementById('reg-role').value;
+      const password = document.getElementById('reg-password').value;
+      const errorEl = document.getElementById('reg-error');
+      const btn = document.getElementById('reg-btn');
+
+      if (!name || !phone || !password || !role) {
+        errorEl.textContent = 'Please fill in all required fields';
+        return;
+      }
+      if (phone.length !== 10 || isNaN(phone)) {
+        errorEl.textContent = 'Please enter a valid 10-digit phone number';
+        return;
+      }
+      if (password.length < 6) {
+        errorEl.textContent = 'Password must be at least 6 characters';
+        return;
+      }
+
+      btn.disabled = true;
+      btn.innerHTML = '<div class="spinner"></div> Creating account...';
+      errorEl.textContent = '';
+
+      try {
+        const data = await API.post('/auth/register', { name, phone, village, age: parseInt(age), role, password });
+        Auth.login(data.token, data.user);
+        Toast.success(`Account created! Welcome, ${data.user.name}!`);
+        setTimeout(() => Auth.redirectIfLoggedIn(), 800);
+      } catch (err) {
+        errorEl.textContent = err.message;
+        btn.disabled = false;
+        btn.innerHTML = 'Create Account →';
+      }
+    }
+
+    async function fillDemo(role) {
+      if (role === 'patient') {
+        // Create demo patient if not exists
+        try {
+          await API.post('/auth/register', {
+            name: 'Ramu Kumar', phone: '9876543210', village: 'Rampur', age: 35,
+            role: 'patient', password: 'demo123'
+          });
+        } catch { /* already exists */ }
+        document.getElementById('login-phone').value = '9876543210';
+        document.getElementById('login-password').value = 'demo123';
+      } else {
+        try {
+          await API.post('/auth/register', {
+            name: 'Dr. Priya Sharma', phone: '9876543211', village: 'District Hospital',
+            age: 42, role: 'doctor', password: 'demo123'
+          });
+        } catch { /* already exists */ }
+        document.getElementById('login-phone').value = '9876543211';
+        document.getElementById('login-password').value = 'demo123';
+      }
+      Toast.info('Demo credentials filled. Click Sign In.');
+    }
+
+    // Enter key support
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        const activeForm = document.getElementById('login-form').classList.contains('hidden')
+          ? 'register' : 'login';
+        if (activeForm === 'login') handleLogin();
+        else handleRegister();
+      }
+    });
+  </script>
+</body>
+</html>

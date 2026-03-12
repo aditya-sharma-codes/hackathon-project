@@ -1,0 +1,11 @@
+{
+  "name": "gramhealth",
+  "version": "1.0.0",
+  "description": "GramHealth – Rural TeleHealth Access System",
+  "scripts": {
+    "install-deps": "cd backend && npm install",
+    "setup": "node generate-icons.js && cd backend && npm install",
+    "start": "cd backend && node server.js",
+    "dev": "cd backend && npm run dev"
+  }
+}

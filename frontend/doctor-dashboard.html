@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Doctor Dashboard – GramHealth</title>
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#16a34a">
+  <link rel="stylesheet" href="/css/styles.css">
+
+  <!-- QR Scanner Library (modern, lightweight) -->
+  <script type="module">
+    import QrScanner from "https://unpkg.com/qr-scanner@1.4.2/qr-scanner.min.js";
+    window.QrScanner = QrScanner;
+    console.log("QR Scanner library loaded");
+  </script>
+
+  <style>
+    /* Additional styles for QR scanner */
+    #qr-video {
+      width: 100%;
+      border-radius: 12px;
+      background: #000;
+      aspect-ratio: 4/3;
+    }
+    #qr-file {
+      margin-top: 12px;
+      width: 100%;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1.5px solid var(--border);
+      background: white;
+    }
+    .scanner-or {
+      text-align: center;
+      margin: 16px 0 8px;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+    #qr-scanner-modal > div {
+      max-width: 500px;
+      margin: 20px auto;
+      background: white;
+      border-radius: 20px;
+      padding: 24px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+    }
+    #qr-scanner-modal h3 {
+      font-family: 'Fraunces', serif;
+      color: var(--primary);
+      margin-top: 0;
+      margin-bottom: 16px;
+    }
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+      margin-top: 20px;
+    }
+    /* Ensure video fills container */
+    #qr-video {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+  </style>
+</head>
+<body>
+  <div id="offline-banner" class="offline-alert">
+    <span>📵</span> Offline – Limited functionality available
+  </div>
+
+  <!-- Navigation -->
+  <nav class="nav">
+    <div class="nav-brand">🏥 Gram<span class="dot">Health</span></div>
+    <div style="display:flex; align-items:center; gap:12px;">
+      <!-- QR Scan button -->
+      <button onclick="showQRScanner()" style="background:none; border:none; font-size:1.2rem; cursor:pointer;" title="Scan Patient QR">📷</button>
+      <div style="display:flex; align-items:center; gap:6px;">
+        <div class="status-dot online"></div>
+        <span id="doctor-name" style="font-size:0.82rem; font-weight:600; color:var(--primary);"></span>
+      </div>
+      <button onclick="Auth.logout()" style="background:none; border:none; cursor:pointer; font-size:0.82rem; color:var(--text-muted);">Logout</button>
+    </div>
+  </nav>
+
+  <!-- Tabs -->
+  <div style="background:white; border-bottom:1px solid var(--border); display:flex; position:sticky; top:57px; z-index:90;">
+    <button class="bottom-nav-item active" id="tab-queue" onclick="switchTab('queue')" style="position:static; padding:12px 4px; font-size:0.72rem;">
+      <span class="icon">📋</span> Queue
+    </button>
+    <button class="bottom-nav-item" id="tab-active" onclick="switchTab('active')" style="position:static; padding:12px 4px; font-size:0.72rem;">
+      <span class="icon">🔴</span> Active
+    </button>
+    <button class="bottom-nav-item" id="tab-history" onclick="switchTab('history')" style="position:static; padding:12px 4px; font-size:0.72rem;">
+      <span class="icon">📂</span> History
+    </button>
+    <button class="bottom-nav-item" id="tab-rx" onclick="switchTab('rx')" style="position:static; padding:12px 4px; font-size:0.72rem;">
+      <span class="icon">💊</span> Prescribe
+    </button>
+  </div>
+
+  <!-- ─── QUEUE TAB ─────────────────────────── -->
+  <div id="panel-queue" class="content">
+    <div style="padding:4px 0 16px;">
+      <div style="font-family:'Fraunces',serif; font-size:1.3rem; font-weight:700;">Patient Queue</div>
+      <div style="font-size:0.82rem; color:var(--text-muted);">Pending consultation requests</div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-value" id="stat-pending">0</div>
+        <div class="stat-label">Pending</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="stat-active">0</div>
+        <div class="stat-label">Active</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="stat-done">0</div>
+        <div class="stat-label">Done Today</div>
+      </div>
+    </div>
+
+    <div id="queue-list">
+      <div style="text-align:center; padding:24px; color:var(--text-muted);">
+        <div class="spinner" style="border-color:rgba(22,163,74,0.3); border-top-color:var(--primary); margin:0 auto 8px;"></div>
+        Loading queue...
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── ACTIVE TAB ────────────────────────── -->
+  <div id="panel-active" class="content hidden">
+    <div style="padding:4px 0 16px;">
+      <div style="font-family:'Fraunces',serif; font-size:1.3rem; font-weight:700;">Active Consultation</div>
+    </div>
+    <div id="active-consult-panel">
+      <div class="empty-state">
+        <div class="empty-icon">👨‍⚕️</div>
+        <p>No active consultation</p>
+        <button class="btn btn-secondary btn-sm" style="margin-top:12px;" onclick="switchTab('queue')">View Queue</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── HISTORY TAB ───────────────────────── -->
+  <div id="panel-history" class="content hidden">
+    <div style="padding:4px 0 16px;">
+      <div style="font-family:'Fraunces',serif; font-size:1.3rem; font-weight:700;">Consultation History</div>
+    </div>
+    <div id="history-list">
+      <div class="empty-state">
+        <div class="empty-icon">📂</div>
+        <p>No completed consultations yet</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── PRESCRIBE TAB ─────────────────────── -->
+  <div id="panel-rx" class="content hidden">
+    <div style="padding:4px 0 16px;">
+      <div style="font-family:'Fraunces',serif; font-size:1.3rem; font-weight:700;">💊 Write Prescription</div>
+    </div>
+
+    <div class="card">
+      <div class="form-group">
+        <label class="form-label">Select Patient Consultation</label>
+        <select id="rx-consultation-select" class="form-select">
+          <option value="">Select consultation...</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Medicines</label>
+        <div id="medicines-list">
+          <div class="medicine-entry" data-index="0">
+            <div style="display:grid; grid-template-columns:2fr 1fr 1fr; gap:8px; margin-bottom:8px;">
+              <input type="text" placeholder="Medicine name" class="form-input med-name" style="font-size:0.85rem;">
+              <input type="text" placeholder="Dosage" class="form-input med-dose" style="font-size:0.85rem;">
+              <input type="text" placeholder="Duration" class="form-input med-dur" style="font-size:0.85rem;">
+            </div>
+          </div>
+        </div>
+        <button class="btn btn-outline btn-sm" onclick="addMedicineRow()">+ Add Medicine</button>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Doctor's Notes / Advice</label>
+        <textarea id="rx-notes" class="form-textarea" placeholder="Rest, dietary advice, follow-up instructions..." rows="3"></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Next Visit Date</label>
+        <input type="date" id="rx-next-visit" class="form-input">
+      </div>
+      <div id="rx-error" class="form-error"></div>
+      <button class="btn btn-primary btn-full" onclick="sendPrescription()">📋 Send Prescription</button>
+    </div>
+
+    <!-- Prescription templates -->
+    <div class="card">
+      <div class="card-header">⚡ Quick Templates</div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+        <button class="btn btn-outline btn-sm" onclick="fillTemplate('cold')">🤧 Cold/Flu</button>
+        <button class="btn btn-outline btn-sm" onclick="fillTemplate('fever')">🌡️ Fever</button>
+        <button class="btn btn-outline btn-sm" onclick="fillTemplate('diarrhea')">💊 Diarrhea</button>
+        <button class="btn btn-outline btn-sm" onclick="fillTemplate('hypertension')">❤️ BP</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Patient Details Modal -->
+  <div id="patient-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:1000; padding:20px; overflow-y:auto;">
+    <div style="background:white; border-radius:var(--radius-lg); max-width:480px; margin:0 auto; overflow:hidden;">
+      <div style="background:var(--primary); padding:20px; color:white;">
+        <div style="font-family:'Fraunces',serif; font-size:1.2rem; font-weight:700;" id="modal-patient-name">Patient Details</div>
+        <div style="font-size:0.82rem; opacity:0.85;" id="modal-patient-meta"></div>
+      </div>
+      <div style="padding:20px;" id="modal-content"></div>
+      <div style="padding:0 20px 20px; display:flex; gap:12px;">
+        <button id="modal-accept-btn" class="btn btn-primary" style="flex:1;" onclick="acceptConsultation()">✅ Accept & Call</button>
+        <button class="btn btn-outline" onclick="closeModal()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- QR Scanner Modal (using qr-scanner) -->
+  <div id="qr-scanner-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); padding:20px; z-index:1000;">
+    <div>
+      <h3>Scan Patient QR</h3>
+      <video id="qr-video"></video>
+      <div class="scanner-or">— OR —</div>
+      <input type="file" id="qr-file" accept="image/*">
+      <div class="modal-actions">
+        <button class="btn btn-outline" onclick="closeQRScanner()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/app.js"></script>
+  <script>
+    // ==================== EXISTING DASHBOARD VARIABLES ====================
+    let currentConsultationId = null;
+    let currentRoomId = null;
+    let allConsultations = [];
+    let qrScannerInstance = null;  // for QR scanner
+
+    const QR_SECRET = 'gramhealth-secret'; // must match patient dashboard
+
+    // ==================== DASHBOARD INIT ====================
+    document.addEventListener('DOMContentLoaded', async () => {
+      Auth.requireAuth();
+      const user = Auth.user;
+      if (user?.role !== 'doctor') {
+        window.location.href = '/patient-dashboard.html';
+        return;
+      }
+      document.getElementById('doctor-name').textContent = 'Dr. ' + (user.name?.split(' ')[0] || '');
+      await loadData();
+      setInterval(loadData, 30000); // Auto-refresh every 30s
+    });
+
+    // ==================== DATA LOADING & RENDERING ====================
+    async function loadData() {
+      try {
+        const consultations = await API.get('/consultations');
+        allConsultations = consultations;
+        renderQueue(consultations);
+        renderHistory(consultations);
+        renderActivePanel(consultations);
+        populateRxSelect(consultations);
+        updateStats(consultations);
+      } catch (err) {
+        Toast.error('Failed to load data: ' + err.message);
+      }
+    }
+
+    function updateStats(list) {
+      const today = new Date().toDateString();
+      document.getElementById('stat-pending').textContent = list.filter(c => c.status === 'pending').length;
+      document.getElementById('stat-active').textContent = list.filter(c => c.status === 'active').length;
+      document.getElementById('stat-done').textContent = list.filter(c =>
+        c.status === 'completed' && new Date(c.updatedAt).toDateString() === today
+      ).length;
+    }
+
+    function renderQueue(list) {
+      const pending = list.filter(c => c.status === 'pending');
+      const el = document.getElementById('queue-list');
+      if (!pending.length) {
+        el.innerHTML = `<div class="empty-state"><div class="empty-icon">🎉</div><p>Queue is empty! No pending requests.</p></div>`;
+        return;
+      }
+      el.innerHTML = pending.map(c => `
+        <div class="consult-item ${c.urgency}" onclick="showPatientModal('${c.id}')">
+          <div class="consult-header">
+            <div>
+              <div class="consult-name">${c.patientName}</div>
+              <div class="consult-meta">${c.patientVillage || 'Unknown village'} • Age: ${c.patientAge || 'N/A'}</div>
+            </div>
+            ${urgencyBadge(c.urgency)}
+          </div>
+          <div class="consult-symptoms" style="margin:6px 0;">${c.symptoms?.slice(0, 100)}...</div>
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span class="text-xs text-muted">${timeAgo(c.createdAt)}</span>
+            <button class="btn btn-primary btn-sm" onclick="event.stopPropagation();showPatientModal('${c.id}')">👁️ View</button>
+          </div>
+        </div>`
+      ).join('');
+    }
+
+    function renderHistory(list) {
+      const done = list.filter(c => c.status === 'completed' || c.status === 'cancelled');
+      const el = document.getElementById('history-list');
+      if (!done.length) {
+        el.innerHTML = `<div class="empty-state"><div class="empty-icon">📂</div><p>No completed consultations</p></div>`;
+        return;
+      }
+      el.innerHTML = done.map(c => `
+        <div class="consult-item">
+          <div class="consult-header">
+            <div class="consult-name">${c.patientName}</div>
+            ${statusBadge(c.status)}
+          </div>
+          <div class="consult-symptoms">${c.symptoms?.slice(0, 80)}</div>
+          <div class="consult-meta">${formatDate(c.updatedAt)} • ${urgencyBadge(c.urgency)}</div>
+        </div>`
+      ).join('');
+    }
+
+    function renderActivePanel(list) {
+      const active = list.find(c => c.status === 'active');
+      const el = document.getElementById('active-consult-panel');
+      if (!active) {
+        el.innerHTML = `<div class="empty-state"><div class="empty-icon">👨‍⚕️</div><p>No active consultation</p><button class="btn btn-secondary btn-sm" style="margin-top:12px;" onclick="switchTab('queue')">View Queue</button></div>`;
+        return;
+      }
+      el.innerHTML = `
+        <div class="card" style="background:var(--green-50); border:2px solid var(--green-400);">
+          <div style="font-weight:700; color:var(--green-800); margin-bottom:4px;">🔴 Active Session</div>
+          <div style="font-size:0.9rem; font-weight:600;">${active.patientName}</div>
+          <div class="text-sm text-muted">${active.patientVillage || ''} • Age: ${active.patientAge || 'N/A'}</div>
+          <div style="margin:10px 0; padding:10px; background:white; border-radius:8px; font-size:0.85rem;">${active.symptoms}</div>
+          <button class="btn btn-primary btn-full" onclick="joinCall('${active.id}', '${active.roomId}')">📞 Rejoin Call</button>
+        </div>`;
+    }
+
+    function populateRxSelect(list) {
+      const active = list.filter(c => c.status === 'active' || c.status === 'completed');
+      const select = document.getElementById('rx-consultation-select');
+      select.innerHTML = '<option value="">Select consultation...</option>' +
+        active.map(c => `<option value="${c.id}" data-patient="${c.patientId}">[${c.status}] ${c.patientName} – ${formatDate(c.createdAt)}</option>`).join('');
+    }
+
+    function showPatientModal(consultationId) {
+      const c = allConsultations.find(c => c.id === consultationId);
+      if (!c) return;
+      currentConsultationId = consultationId;
+      currentRoomId = c.roomId;
+
+      document.getElementById('modal-patient-name').textContent = c.patientName;
+      document.getElementById('modal-patient-meta').textContent =
+        `${c.patientVillage || 'Unknown village'} • Age: ${c.patientAge || 'N/A'} • ${timeAgo(c.createdAt)}`;
+
+      const triage = c.triageResult;
+      document.getElementById('modal-content').innerHTML = `
+        <div class="form-group">
+          <div class="form-label">Symptoms</div>
+          <div style="background:var(--gray-50); padding:12px; border-radius:8px; font-size:0.88rem;">${c.symptoms}</div>
+        </div>
+        ${triage ? `
+        <div class="form-group">
+          <div class="form-label">AI Triage Result</div>
+          <div class="risk-indicator ${triage.riskLevel === 'high' ? 'risk-high' : triage.riskLevel === 'medium' ? 'risk-medium' : 'risk-low'}">
+            <div class="risk-icon">${triage.riskLevel === 'high' ? '🚨' : triage.riskLevel === 'medium' ? '⚠️' : '✅'}</div>
+            <div>
+              <div class="risk-title">${triage.riskLevel?.toUpperCase()} RISK</div>
+              <div class="risk-desc">${triage.conditions?.map(c => c.name).join(', ') || 'Unknown'}</div>
+            </div>
+          </div>
+        </div>` : ''}
+        <div class="form-group">
+          <div class="form-label">Status</div>
+          ${statusBadge(c.status)} ${urgencyBadge(c.urgency)}
+        </div>
+      `;
+
+      const btn = document.getElementById('modal-accept-btn');
+      if (c.status === 'pending') {
+        btn.style.display = '';
+        btn.textContent = '✅ Accept & Start Call';
+      } else if (c.status === 'active') {
+        btn.style.display = '';
+        btn.textContent = '📞 Rejoin Call';
+      } else {
+        btn.style.display = 'none';
+      }
+
+      document.getElementById('patient-modal').style.display = 'block';
+    }
+
+    function closeModal() {
+      document.getElementById('patient-modal').style.display = 'none';
+    }
+
+    async function acceptConsultation() {
+      if (!currentConsultationId) return;
+      try {
+        await API.patch(`/consultations/${currentConsultationId}`, { status: 'active' });
+        closeModal();
+        joinCall(currentConsultationId, currentRoomId);
+      } catch (err) {
+        Toast.error(err.message);
+      }
+    }
+
+    function joinCall(consultationId, roomId) {
+      sessionStorage.setItem('gh_consultation_id', consultationId);
+      sessionStorage.setItem('gh_room_id', roomId + '-doctor');
+      sessionStorage.setItem('gh_patient_room_id', roomId);
+      sessionStorage.setItem('gh_role', 'doctor');
+      window.location.href = '/consultation.html';
+    }
+
+    function addMedicineRow() {
+      const list = document.getElementById('medicines-list');
+      const div = document.createElement('div');
+      div.className = 'medicine-entry';
+      div.innerHTML = `
+        <div style="display:grid; grid-template-columns:2fr 1fr 1fr auto; gap:8px; margin-bottom:8px;">
+          <input type="text" placeholder="Medicine name" class="form-input med-name" style="font-size:0.85rem;">
+          <input type="text" placeholder="Dosage" class="form-input med-dose" style="font-size:0.85rem;">
+          <input type="text" placeholder="Duration" class="form-input med-dur" style="font-size:0.85rem;">
+          <button onclick="this.closest('.medicine-entry').remove()" style="background:var(--red-100); border:none; border-radius:8px; padding:0 10px; cursor:pointer; color:var(--red-600);">✕</button>
+        </div>`;
+      list.appendChild(div);
+    }
+
+    const rxTemplates = {
+      cold: [
+        { name: 'Paracetamol 500mg', dosage: '1 tab TDS', duration: '5 days' },
+        { name: 'Cetirizine 10mg', dosage: '1 tab OD', duration: '3 days' },
+        { name: 'ORS Sachets', dosage: '1 sachet TDS', duration: '3 days' }
+      ],
+      fever: [
+        { name: 'Paracetamol 500mg', dosage: '1 tab TDS', duration: '5 days' },
+        { name: 'ORS Sachets', dosage: '1 sachet TDS', duration: 'As needed' }
+      ],
+      diarrhea: [
+        { name: 'ORS Sachets', dosage: '1 sachet after each loose stool', duration: '3-5 days' },
+        { name: 'Zinc 20mg', dosage: '1 tab OD', duration: '14 days' },
+        { name: 'Metronidazole 400mg', dosage: '1 tab TDS', duration: '5 days' }
+      ],
+      hypertension: [
+        { name: 'Amlodipine 5mg', dosage: '1 tab OD morning', duration: '30 days' },
+        { name: 'Atenolol 50mg', dosage: '1 tab OD', duration: '30 days' }
+      ]
+    };
+
+    function fillTemplate(type) {
+      const meds = rxTemplates[type];
+      const list = document.getElementById('medicines-list');
+      list.innerHTML = '';
+      meds.forEach((m, i) => {
+        const div = document.createElement('div');
+        div.className = 'medicine-entry';
+        div.innerHTML = `
+          <div style="display:grid; grid-template-columns:2fr 1fr 1fr auto; gap:8px; margin-bottom:8px;">
+            <input type="text" value="${m.name}" class="form-input med-name" style="font-size:0.85rem;">
+            <input type="text" value="${m.dosage}" class="form-input med-dose" style="font-size:0.85rem;">
+            <input type="text" value="${m.duration}" class="form-input med-dur" style="font-size:0.85rem;">
+            ${i > 0 ? `<button onclick="this.closest('.medicine-entry').remove()" style="background:var(--red-100); border:none; border-radius:8px; padding:0 10px; cursor:pointer; color:var(--red-600);">✕</button>` : '<div></div>'}
+          </div>`;
+        list.appendChild(div);
+      });
+    }
+
+    async function sendPrescription() {
+      const consultationId = document.getElementById('rx-consultation-select').value;
+      const notes = document.getElementById('rx-notes').value;
+      const nextVisit = document.getElementById('rx-next-visit').value;
+      const errorEl = document.getElementById('rx-error');
+
+      if (!consultationId) { errorEl.textContent = 'Select a consultation'; return; }
+
+      const medicines = Array.from(document.querySelectorAll('.medicine-entry')).map(entry => ({
+        name: entry.querySelector('.med-name').value.trim(),
+        dosage: entry.querySelector('.med-dose').value.trim(),
+        duration: entry.querySelector('.med-dur').value.trim()
+      })).filter(m => m.name);
+
+      if (!medicines.length) { errorEl.textContent = 'Add at least one medicine'; return; }
+
+      const select = document.getElementById('rx-consultation-select');
+      const patientId = select.options[select.selectedIndex]?.dataset?.patient;
+      const consult = allConsultations.find(c => c.id === consultationId);
+
+      try {
+        await API.post('/prescriptions', {
+          consultationId,
+          patientId: consult?.patientId,
+          medicines, notes, nextVisit
+        });
+        Toast.success('Prescription sent to patient!');
+        await loadData();
+        document.getElementById('rx-notes').value = '';
+        document.getElementById('rx-next-visit').value = '';
+        document.getElementById('medicines-list').innerHTML = `<div class="medicine-entry" data-index="0">
+          <div style="display:grid; grid-template-columns:2fr 1fr 1fr; gap:8px; margin-bottom:8px;">
+            <input type="text" placeholder="Medicine name" class="form-input med-name" style="font-size:0.85rem;">
+            <input type="text" placeholder="Dosage" class="form-input med-dose" style="font-size:0.85rem;">
+            <input type="text" placeholder="Duration" class="form-input med-dur" style="font-size:0.85rem;">
+          </div>
+        </div>`;
+      } catch (err) {
+        errorEl.textContent = err.message;
+      }
+    }
+
+    function switchTab(tab) {
+      ['queue', 'active', 'history', 'rx'].forEach(t => {
+        document.getElementById(`panel-${t}`).classList.toggle('hidden', t !== tab);
+        document.getElementById(`tab-${t}`)?.classList.toggle('active', t === tab);
+      });
+    }
+
+    // ==================== QR SCANNER (modern qr-scanner) ====================
+    function showQRScanner() {
+      // Show modal
+      const modal = document.getElementById('qr-scanner-modal');
+      modal.style.display = 'block';
+
+      // Wait a bit for modal to render, then start camera
+      setTimeout(async () => {
+        try {
+          if (typeof QrScanner === 'undefined') {
+            Toast.error('QR library not loaded. Refresh.');
+            return;
+          }
+
+          const video = document.getElementById('qr-video');
+          if (!video) return;
+
+          // Check camera support
+          if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            Toast.error('Camera not supported on this device');
+            return;
+          }
+
+          // Create scanner instance
+          qrScannerInstance = new QrScanner(
+            video,
+            result => handleQR(result.data),
+            {
+              onDecodeError: error => {
+                // Ignore "No QR code found" errors; they're normal during scanning
+                if (!error.message.includes('No QR code found')) {
+                  console.warn('QR decode error:', error);
+                }
+              },
+              highlightScanRegion: true,
+              highlightCodeOutline: true,
+            }
+          );
+
+          // Start scanning
+          await qrScannerInstance.start();
+          console.log('QR scanner started');
+        } catch (err) {
+          console.error('Camera start error:', err);
+          Toast.error('Could not access camera: ' + (err.message || 'unknown error'));
+        }
+      }, 200);
+    }
+
+    function handleQR(decodedText) {
+      try {
+        const decoded = atob(decodedText);
+        const [patientId, secret] = decoded.split(':');
+        if (secret !== QR_SECRET) throw new Error('Invalid secret');
+
+        Toast.success('Patient QR scanned');
+        fetchPatientById(patientId);
+        closeQRScanner();
+      } catch (err) {
+        Toast.error('Invalid GramHealth QR');
+        // Keep scanner running for another try (optional)
+      }
+    }
+
+    function closeQRScanner() {
+      if (qrScannerInstance) {
+        qrScannerInstance.stop();
+        qrScannerInstance.destroy();
+        qrScannerInstance = null;
+      }
+      document.getElementById('qr-scanner-modal').style.display = 'none';
+      document.getElementById('qr-file').value = '';
+    }
+
+    // File upload scanning
+    document.getElementById('qr-file').addEventListener('change', async e => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      try {
+        if (typeof QrScanner === 'undefined') {
+          Toast.error('QR library not loaded');
+          return;
+        }
+        const result = await QrScanner.scanImage(file);
+        handleQR(result);
+      } catch (err) {
+        Toast.error('Could not read QR from image');
+      }
+    });
+
+    // ==================== FETCH PATIENT DATA ====================
+    async function fetchPatientById(patientId) {
+      try {
+        const patient = await API.get(`/users/${patientId}`);
+        alert(
+          `Patient: ${patient.name}\nAge: ${patient.age}\nVillage: ${patient.village}\nConditions: ${patient.conditions || 'None'}\nAllergies: ${patient.allergies || 'None'}\nEmergency Contact: ${patient.emergencyContact || 'N/A'}`
+        );
+      } catch (err) {
+        // Try to find in local consultations cache
+        const cached = allConsultations.find(c => c.patientId === patientId);
+        if (cached) {
+          alert(
+            `Patient (cached): ${cached.patientName}\nAge: ${cached.patientAge}\nVillage: ${cached.patientVillage}`
+          );
+        } else {
+          Toast.error('Patient not found');
+        }
+      }
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,22 @@
+[
+  {
+    "id": "0caa0f80-2e94-41d9-a11c-db8d16a486ab",
+    "name": "Ramu Kumar",
+    "phone": "9876543210",
+    "password": "$2a$10$yuVA17dMI0PUYzZLIlzWIuKgdjPzsaxRPNnR8ps4nILBmd99DBaQm",
+    "role": "patient",
+    "village": "Rampur",
+    "age": 35,
+    "createdAt": "2026-03-12T13:21:50.734Z"
+  },
+  {
+    "id": "6e72e49f-9e1f-4a55-a142-44f8e1d0448b",
+    "name": "Dr. Priya Sharma",
+    "phone": "9876543211",
+    "password": "$2a$10$2FcI6wWd4iVU/G397RCcj.4.Gerd/wJaD6k66iLSSgk3oasnIfiVm",
+    "role": "doctor",
+    "village": "District Hospital",
+    "age": 42,
+    "createdAt": "2026-03-12T13:23:54.839Z"
+  }
+]

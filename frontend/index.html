@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>GramHealth – Rural TeleHealth Access</title>
+  <meta name="description" content="Bringing healthcare to every village. Telemedicine, AI symptom checker, and medicine finder – even offline.">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#16a34a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="apple-touch-icon" href="/icons/icon-192.png">
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <div id="offline-banner" class="offline-alert">
+    <span>📵</span> You're offline – App works with limited features
+  </div>
+
+  <div class="page">
+    <!-- Hero -->
+    <div class="hero">
+      <div class="hero-badge">
+        <span>🏥</span> Rural Healthcare Initiative
+      </div>
+      <h1>Health care for<br><em>every village</em></h1>
+      <p>Connect with doctors, check symptoms, and find medicines – works even with poor internet.</p>
+      <div class="hero-actions">
+        <a href="/login.html" class="btn btn-white btn-lg">Get Started →</a>
+        <a href="#features" class="btn btn-ghost">Learn More</a>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div style="background:white;padding:24px 16px;border-bottom:1px solid var(--border);">
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-value">24/7</div>
+          <div class="stat-label">Always Available</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">3G+</div>
+          <div class="stat-label">Works Offline</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">Free</div>
+          <div class="stat-label">For All</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Features -->
+    <div id="features" style="padding:24px 16px 0;">
+      <h2 style="font-family:'Fraunces',serif;text-align:center;color:var(--gray-900);margin-bottom:6px;">Everything you need</h2>
+      <p style="text-align:center;color:var(--text-muted);font-size:0.88rem;margin-bottom:20px;">Designed for low-bandwidth rural areas</p>
+    </div>
+    <div class="features-grid" style="padding:0 16px 24px;">
+      <div class="feature-card">
+        <div class="feature-icon">👨‍⚕️</div>
+        <div class="feature-title">Doctor Consultation</div>
+        <div class="feature-desc">Video, audio or voice messages based on your signal</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🤖</div>
+        <div class="feature-title">AI Symptom Check</div>
+        <div class="feature-desc">Instant triage and risk assessment – no internet needed</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">💊</div>
+        <div class="feature-title">Find Medicines</div>
+        <div class="feature-desc">Check availability at nearby pharmacies in real-time</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📋</div>
+        <div class="feature-title">Digital Records</div>
+        <div class="feature-desc">Prescriptions and health history stored securely</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📴</div>
+        <div class="feature-title">Works Offline</div>
+        <div class="feature-desc">Symptom checker & records available without internet</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔒</div>
+        <div class="feature-title">Secure & Private</div>
+        <div class="feature-desc">Your health data stays safe and confidential</div>
+      </div>
+    </div>
+
+    <!-- How it works -->
+    <div style="background:var(--green-50);padding:24px 16px;margin:0 0 24px;">
+      <h2 style="font-family:'Fraunces',serif;text-align:center;color:var(--gray-900);margin-bottom:20px;">How It Works</h2>
+      <div style="display:flex;flex-direction:column;gap:16px;">
+        <div style="display:flex;gap:16px;align-items:flex-start;">
+          <div style="width:36px;height:36px;border-radius:50%;background:var(--primary);color:white;display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;">1</div>
+          <div>
+            <div style="font-weight:700;font-size:0.95rem;">Register & describe symptoms</div>
+            <div style="font-size:0.82rem;color:var(--text-muted);">Create account and use AI checker to assess your condition</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:16px;align-items:flex-start;">
+          <div style="width:36px;height:36px;border-radius:50%;background:var(--primary);color:white;display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;">2</div>
+          <div>
+            <div style="font-weight:700;font-size:0.95rem;">Request doctor consultation</div>
+            <div style="font-size:0.82rem;color:var(--text-muted);">Connect via video, audio, or voice message based on signal strength</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:16px;align-items:flex-start;">
+          <div style="width:36px;height:36px;border-radius:50%;background:var(--primary);color:white;display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;">3</div>
+          <div>
+            <div style="font-weight:700;font-size:0.95rem;">Get prescription & find medicines</div>
+            <div style="font-size:0.82rem;color:var(--text-muted);">Receive digital prescription and check nearby pharmacy stock</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CTA -->
+    <div style="padding:0 16px 40px;text-align:center;">
+      <a href="/login.html" class="btn btn-primary btn-lg btn-full" style="margin-bottom:12px;">
+        🏥 Start Free Consultation
+      </a>
+      <p style="font-size:0.8rem;color:var(--text-muted);">No subscription fee. Available in Hindi & English.</p>
+    </div>
+  </div>
+
+  <script src="/js/app.js"></script>
+  <script>
+    // Register service worker
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js')
+        .then(reg => console.log('SW registered:', reg.scope))
+        .catch(err => console.log('SW failed:', err));
+    }
+
+    // Redirect if already logged in
+    document.addEventListener('DOMContentLoaded', () => {
+      if (Auth.isLoggedIn()) Auth.redirectIfLoggedIn();
+    });
+  </script>
+</body>
+</html>

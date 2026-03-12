@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Consultation – GramHealth</title>
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#16a34a">
+  <link rel="stylesheet" href="/css/styles.css">
+  <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+</head>
+<body>
+  <div id="offline-banner" class="offline-alert">
+    <span>📵</span> Offline – Using voice message mode
+  </div>
+
+  <!-- Nav -->
+  <nav class="nav">
+    <div class="nav-brand">📞 Consultation</div>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <span id="call-status" class="badge badge-yellow pulse">Connecting...</span>
+    </div>
+  </nav>
+
+  <div class="content" style="padding-bottom:20px;">
+    <!-- Connection banner -->
+    <div id="conn-banner" class="conn-banner conn-good">🔄 Detecting connection...</div>
+
+    <!-- Consultation info -->
+    <div id="consult-info" class="card" style="padding:14px;">
+      <div id="consult-info-content" style="font-size:0.85rem;color:var(--text-muted);">Loading consultation details...</div>
+    </div>
+
+    <!-- ─── VIDEO MODE ──────────────────────── -->
+    <div id="video-section">
+      <div class="video-grid">
+        <div class="video-box">
+          <video id="remote-video" autoplay playsinline></video>
+          <div class="video-label" id="remote-label">Remote</div>
+          <div id="remote-placeholder" style="color:white;text-align:center;">
+            <div style="font-size:2rem;">👤</div>
+            <div style="font-size:0.75rem;margin-top:4px;">Waiting...</div>
+          </div>
+        </div>
+        <div class="video-box">
+          <video id="local-video" autoplay playsinline muted></video>
+          <div class="video-label">You</div>
+        </div>
+      </div>
+
+      <div class="call-controls">
+        <button class="ctrl-btn ctrl-mute" id="mute-btn" onclick="Consultation.toggleMute()" title="Mute">🎙️</button>
+        <button class="ctrl-btn ctrl-end" onclick="Consultation.endCall()" title="End Call">📵</button>
+        <button class="ctrl-btn ctrl-video-toggle" id="video-btn" onclick="Consultation.toggleVideo()" title="Toggle Video">📹</button>
+      </div>
+    </div>
+
+    <!-- ─── VOICE MESSAGE MODE ──────────────── -->
+    <div id="voice-mode-section" class="hidden">
+      <div class="card" style="background:var(--amber-50,#fffbeb);border-color:var(--amber-400);">
+        <div style="font-weight:700;color:#92400e;margin-bottom:6px;">⚠️ Weak Signal Detected</div>
+        <p style="font-size:0.85rem;color:#78350f;">Video/audio call not possible. Use voice messages to communicate with your doctor.</p>
+      </div>
+
+      <div class="card">
+        <div class="card-header">🎙️ Send Voice Message</div>
+        <div id="voice-indicator" class="voice-indicator hidden">
+          <span style="font-size:0.82rem;color:var(--green-700);font-weight:600;">Recording...</span>
+          <div style="display:flex;align-items:center;gap:3px;margin-left:8px;">
+            <div class="voice-bar" style="height:8px;"></div>
+            <div class="voice-bar" style="height:12px;"></div>
+            <div class="voice-bar" style="height:16px;"></div>
+            <div class="voice-bar" style="height:10px;"></div>
+          </div>
+        </div>
+        <button id="record-btn" class="btn btn-primary btn-full" onclick="toggleRecording()">
+          🎙️ Record Voice Message
+        </button>
+        <p class="form-hint">Record a message for your doctor. It will be sent when connection improves.</p>
+      </div>
+
+      <div class="card">
+        <div class="card-header">📨 Voice Messages</div>
+        <div id="voice-messages-list">
+          <p class="text-muted text-sm">No voice messages yet</p>
+        </div>
+      </div>
+
+      <button class="btn btn-danger btn-full" onclick="Consultation.endCall()">End Session</button>
+    </div>
+
+    <!-- ─── DOCTOR SECTION (only if doctor role) ── -->
+    <div id="doctor-tools" class="hidden">
+      <div class="card" style="margin-top:12px;">
+        <div class="card-header">🩺 Patient Notes (Doctor)</div>
+        <div class="form-group">
+          <label class="form-label">Clinical Notes</label>
+          <textarea id="doc-notes" class="form-textarea" placeholder="Patient complaints, examination findings..." rows="3"></textarea>
+        </div>
+        <div id="triage-summary" style="margin-bottom:12px;"></div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-primary" style="flex:1;" onclick="goToPrescribe()">
+            💊 Write Prescription
+          </button>
+        </div>
+      </div>
+
+      <!-- Connect to patient via room ID -->
+      <div class="card">
+        <div class="card-header">🔗 Connection Info</div>
+        <div style="font-size:0.82rem;color:var(--text-muted);margin-bottom:8px;">Patient's Room ID:</div>
+        <div id="patient-room-display" style="font-family:monospace;font-size:0.85rem;background:var(--gray-100);padding:10px;border-radius:8px;word-break:break-all;"></div>
+        <button class="btn btn-primary btn-sm" style="margin-top:10px;width:100%;" onclick="callPatient()">
+          📞 Call Patient
+        </button>
+      </div>
+    </div>
+
+    <!-- ─── PATIENT SECTION ──────────────────── -->
+    <div id="patient-tools">
+      <div class="card" style="margin-top:12px;">
+        <div class="card-header">💬 Chat / Text Mode</div>
+        <div id="chat-messages" style="height:150px;overflow-y:auto;background:var(--gray-50);border-radius:8px;padding:12px;margin-bottom:10px;font-size:0.85rem;">
+          <p style="color:var(--text-muted);text-align:center;">Chat available during consultation</p>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <input type="text" id="chat-input" class="form-input" placeholder="Type a message..." style="flex:1;font-size:0.85rem;">
+          <button class="btn btn-primary btn-sm" onclick="sendChatMessage()">Send</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">🔗 Your Room ID</div>
+        <div id="room-id-display" style="font-family:monospace;font-size:0.85rem;background:var(--gray-100);padding:10px;border-radius:8px;word-break:break-all;color:var(--primary);font-weight:600;"></div>
+        <p style="font-size:0.78rem;color:var(--text-muted);margin-top:6px;">Share this with your doctor to connect</p>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/app.js"></script>
+  <script src="/js/consultation.js"></script>
+  <script>
+    let role = '';
+    let consultationId = '';
+    let roomId = '';
+    let patientRoomId = '';
+    let chatMessages = [];
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      Auth.requireAuth();
+      consultationId = sessionStorage.getItem('gh_consultation_id') || '';
+      roomId = sessionStorage.getItem('gh_room_id') || '';
+      patientRoomId = sessionStorage.getItem('gh_patient_room_id') || '';
+      role = sessionStorage.getItem('gh_role') || 'patient';
+
+      // Setup role-specific UI
+      if (role === 'doctor') {
+        document.getElementById('doctor-tools').classList.remove('hidden');
+        document.getElementById('remote-label').textContent = 'Patient';
+        if (patientRoomId) {
+          document.getElementById('patient-room-display').textContent = patientRoomId;
+        }
+        // Load consultation details
+        if (consultationId) {
+          loadConsultationDetails();
+        }
+      } else {
+        document.getElementById('remote-label').textContent = 'Doctor';
+      }
+
+      // Init WebRTC
+      await Consultation.init(roomId, consultationId);
+      Consultation.loadVoiceMessages();
+    });
+
+    async function loadConsultationDetails() {
+      try {
+        const c = await API.get(`/consultations/${consultationId}`);
+        document.getElementById('consult-info-content').innerHTML = `
+          <div style="display:flex;justify-content:space-between;">
+            <div><strong>${role === 'doctor' ? 'Patient' : 'Doctor'}:</strong> ${role === 'doctor' ? c.patientName : c.doctorName}</div>
+            ${urgencyBadge(c.urgency)}
+          </div>
+          <div style="margin-top:6px;font-size:0.82rem;">${c.symptoms?.slice(0, 100)}...</div>`;
+        
+        // Show triage for doctor
+        if (role === 'doctor' && c.triageResult) {
+          const triage = c.triageResult;
+          document.getElementById('triage-summary').innerHTML = `
+            <div class="risk-indicator ${triage.riskLevel === 'high' ? 'risk-high' : triage.riskLevel === 'medium' ? 'risk-medium' : 'risk-low'}" style="margin-bottom:0;">
+              <div class="risk-icon">${triage.riskLevel === 'high' ? '🚨' : triage.riskLevel === 'medium' ? '⚠️' : '✅'}</div>
+              <div>
+                <div class="risk-title">AI Triage: ${triage.riskLevel?.toUpperCase()}</div>
+                <div class="risk-desc">${triage.conditions?.slice(0,2).map(c => c.name).join(', ')}</div>
+              </div>
+            </div>`;
+        }
+      } catch (err) {
+        document.getElementById('consult-info-content').textContent = 'Consultation session active';
+      }
+    }
+
+    function callPatient() {
+      const targetId = patientRoomId;
+      if (!targetId) {
+        Toast.error('Patient room ID not found');
+        return;
+      }
+      Consultation.startCall(targetId);
+    }
+
+    function toggleRecording() {
+      if (Consultation.isRecording) {
+        Consultation.stopRecording();
+      } else {
+        Consultation.startRecording();
+      }
+    }
+
+    function goToPrescribe() {
+      const notes = document.getElementById('doc-notes').value;
+      sessionStorage.setItem('gh_doc_notes', notes);
+      window.location.href = '/doctor-dashboard.html#rx';
+    }
+
+    function sendChatMessage() {
+      const input = document.getElementById('chat-input');
+      const msg = input.value.trim();
+      if (!msg) return;
+      const user = Auth.user;
+      chatMessages.push({ sender: user?.name || 'You', text: msg, time: new Date().toISOString() });
+      renderChat();
+      input.value = '';
+      // In a real implementation, this would use a data channel or socket
+      Toast.info('Message sent (chat requires active connection)');
+    }
+
+    function renderChat() {
+      const container = document.getElementById('chat-messages');
+      const user = Auth.user;
+      container.innerHTML = chatMessages.map(m => `
+        <div style="margin-bottom:8px;">
+          <div style="font-weight:600;font-size:0.78rem;color:var(--text-muted);">${m.sender} · ${formatTime(m.time)}</div>
+          <div style="background:white;padding:8px 10px;border-radius:8px;font-size:0.85rem;margin-top:2px;">${m.text}</div>
+        </div>`).join('');
+      container.scrollTop = container.scrollHeight;
+    }
+
+    // Handle service worker messages
+    if (navigator.serviceWorker) {
+      navigator.serviceWorker.addEventListener('message', (e) => {
+        if (e.data.type === 'SYNC_COMPLETE') {
+          Toast.success(e.data.message);
+        }
+      });
+    }
+  </script>
+</body>
+</html>

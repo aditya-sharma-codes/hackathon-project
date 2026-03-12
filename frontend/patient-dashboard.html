@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Patient Dashboard – GramHealth</title>
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#16a34a">
+  <link rel="stylesheet" href="/css/styles.css">
+  <!-- QR Code library -->
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+</head>
+<body>
+  <div id="offline-banner" class="offline-alert">
+    <span>📵</span> Offline – Showing cached data. Symptom checker still works.
+  </div>
+
+  <!-- Nav -->
+  <nav class="nav">
+    <div class="nav-brand">🏥 Gram<span class="dot">Health</span></div>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <!-- QR Code button -->
+      <button onclick="showQRModal()" style="background:none;border:none;font-size:1.2rem;cursor:pointer;" title="My Health QR">📱</button>
+      <span id="user-name" style="font-size:0.82rem;color:var(--text-muted);"></span>
+      <button onclick="Auth.logout()" style="background:none;border:none;cursor:pointer;font-size:0.82rem;color:var(--text-muted);">Logout</button>
+    </div>
+  </nav>
+
+  <!-- Main Tabs -->
+  <div style="background:white;border-bottom:1px solid var(--border);display:flex;position:sticky;top:57px;z-index:90;">
+    <button class="bottom-nav-item active" id="tab-home" onclick="switchTab('home')" style="position:static;padding:12px 4px;font-size:0.72rem;">
+      <span class="icon">🏠</span> Home
+    </button>
+    <button class="bottom-nav-item" id="tab-symptoms" onclick="switchTab('symptoms')" style="position:static;padding:12px 4px;font-size:0.72rem;">
+      <span class="icon">🩺</span> Symptoms
+    </button>
+    <button class="bottom-nav-item" id="tab-consult" onclick="switchTab('consult')" style="position:static;padding:12px 4px;font-size:0.72rem;">
+      <span class="icon">👨‍⚕️</span> Consult
+    </button>
+    <button class="bottom-nav-item" id="tab-records" onclick="switchTab('records')" style="position:static;padding:12px 4px;font-size:0.72rem;">
+      <span class="icon">📋</span> Records
+    </button>
+    <button class="bottom-nav-item" id="tab-pharmacy" onclick="window.location.href='/pharmacy.html'" style="position:static;padding:12px 4px;font-size:0.72rem;">
+      <span class="icon">💊</span> Pharmacy
+    </button>
+  </div>
+
+  <!-- ─── HOME TAB ─────────────────────────── -->
+  <div id="panel-home" class="content">
+    <div style="padding:4px 0 16px;">
+      <div style="font-family:'Fraunces',serif;font-size:1.3rem;font-weight:700;color:var(--gray-900);">
+        Good <span id="greeting-time">day</span>, <span id="greeting-name">friend</span> 👋
+      </div>
+      <div style="font-size:0.85rem;color:var(--text-muted);">How are you feeling today?</div>
+    </div>
+
+    <!-- Quick action -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px;">
+      <button class="card" style="cursor:pointer;text-align:center;border:2px solid var(--green-200);" onclick="switchTab('symptoms')">
+        <div style="font-size:2rem;margin-bottom:6px;">🩺</div>
+        <div style="font-weight:700;font-size:0.9rem;">Check Symptoms</div>
+        <div style="font-size:0.75rem;color:var(--text-muted);">AI-powered • Offline</div>
+      </button>
+      <button class="card" style="cursor:pointer;text-align:center;border:2px solid var(--green-200);" onclick="switchTab('consult')">
+        <div style="font-size:2rem;margin-bottom:6px;">📞</div>
+        <div style="font-weight:700;font-size:0.9rem;">Talk to Doctor</div>
+        <div style="font-size:0.75rem;color:var(--text-muted);">Book consultation</div>
+      </button>
+    </div>
+
+    <!-- Connection status -->
+    <div id="home-conn-banner" class="conn-banner conn-good" style="margin-bottom:16px;">
+      🔄 Checking connection...
+    </div>
+
+    <!-- Recent consultations -->
+    <div class="section-header">
+      <div class="section-title">📅 Recent Consultations</div>
+    </div>
+    <div id="recent-consultations">
+      <div style="text-align:center;padding:24px;color:var(--text-muted);">
+        <div class="spinner" style="border-color:rgba(22,163,74,0.3);border-top-color:var(--primary);margin:0 auto 8px;"></div>
+        Loading...
+      </div>
+    </div>
+
+    <!-- Offline queue -->
+    <div id="offline-queue-section" class="hidden">
+      <div class="section-header" style="margin-top:16px;">
+        <div class="section-title">⏳ Pending (Offline)</div>
+        <span id="queue-count" class="badge badge-yellow">0</span>
+      </div>
+      <p style="font-size:0.82rem;color:var(--text-muted);">These requests will be sent when internet returns.</p>
+      <button class="btn btn-secondary btn-sm" onclick="OfflineQueue.processQueue()" style="margin-top:8px;">Sync Now</button>
+    </div>
+  </div>
+
+  <!-- ─── SYMPTOMS TAB ──────────────────────── -->
+  <div id="panel-symptoms" class="content hidden">
+    <div style="padding:4px 0 16px;">
+      <div style="font-family:'Fraunces',serif;font-size:1.3rem;font-weight:700;">🩺 AI Symptom Checker</div>
+      <div style="font-size:0.82rem;color:var(--text-muted);">Works without internet • Not a substitute for doctor</div>
+    </div>
+
+    <div class="card">
+      <div class="form-group">
+        <label class="form-label">Describe your symptoms in detail</label>
+        <textarea id="symptom-text" class="form-textarea" placeholder="e.g. I have fever since 2 days with headache and body ache. Also feeling weak and no appetite..." rows="4"></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Common symptoms (tap to select)</label>
+        <div class="symptom-tags" id="symptom-tags"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">How long have you had these symptoms?</label>
+        <select id="duration-select" class="form-select">
+          <option value="today">Started today</option>
+          <option value="2-3days">2-3 days</option>
+          <option value="1week">About a week</option>
+          <option value="more">More than a week</option>
+        </select>
+      </div>
+      <button class="btn btn-primary btn-full" onclick="runSymptomCheck()">
+        🔍 Analyze Symptoms
+      </button>
+    </div>
+
+    <div id="symptom-results" class="hidden"></div>
+
+    <div id="consult-after-triage" class="hidden card" style="background:var(--green-50);border-color:var(--green-300);">
+      <div style="font-weight:700;margin-bottom:8px;">💬 Want to speak with a doctor?</div>
+      <p style="font-size:0.85rem;color:var(--gray-600);margin-bottom:12px;">Our doctors can review your symptoms and provide proper diagnosis.</p>
+      <button class="btn btn-primary btn-full" onclick="switchTab('consult')">Book Consultation →</button>
+    </div>
+  </div>
+
+  <!-- ─── CONSULT TAB ───────────────────────── -->
+  <div id="panel-consult" class="content hidden">
+    <div style="padding:4px 0 16px;">
+      <div style="font-family:'Fraunces',serif;font-size:1.3rem;font-weight:700;">👨‍⚕️ Book Consultation</div>
+      <div style="font-size:0.82rem;color:var(--text-muted);">Connect with available doctors</div>
+    </div>
+
+    <!-- Active consultations first -->
+    <div id="active-consult-banner" class="hidden"></div>
+
+    <div class="card">
+      <div class="card-header">📝 New Consultation Request</div>
+      <div class="form-group">
+        <label class="form-label">Select Doctor</label>
+        <select id="doctor-select" class="form-select">
+          <option value="">Loading doctors...</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Main Complaint / Symptoms</label>
+        <textarea id="consult-symptoms" class="form-textarea" placeholder="Describe what you're experiencing..." rows="3"></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Urgency Level</label>
+        <select id="urgency-select" class="form-select">
+          <option value="low">🟢 Low – Routine checkup</option>
+          <option value="medium" selected>🟡 Medium – Needs attention soon</option>
+          <option value="high">🔴 High – Urgent / Emergency</option>
+        </select>
+      </div>
+      <div id="consult-error" class="form-error"></div>
+      <button class="btn btn-primary btn-full" id="consult-btn" onclick="requestConsultation()">
+        📤 Send Request
+      </button>
+    </div>
+
+    <!-- My consultations -->
+    <div class="section-header">
+      <div class="section-title">📋 My Consultations</div>
+    </div>
+    <div id="my-consultations">
+      <div class="empty-state">
+        <div class="empty-icon">📭</div>
+        <p>No consultations yet</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── RECORDS TAB ──────────────────────── -->
+  <div id="panel-records" class="content hidden">
+    <div style="padding:4px 0 16px;">
+      <div style="font-family:'Fraunces',serif;font-size:1.3rem;font-weight:700;">📋 Health Records</div>
+      <div style="font-size:0.82rem;color:var(--text-muted);">Prescriptions & symptom history</div>
+    </div>
+
+    <div class="section-header">
+      <div class="section-title">💊 Prescriptions</div>
+    </div>
+    <div id="prescriptions-list">
+      <div class="empty-state">
+        <div class="empty-icon">📄</div>
+        <p>No prescriptions yet</p>
+      </div>
+    </div>
+
+    <div class="section-header" style="margin-top:20px;">
+      <div class="section-title">🗂️ Offline Symptom History</div>
+    </div>
+    <div id="offline-records">
+      <p class="text-muted text-sm">No saved symptom checks</p>
+    </div>
+  </div>
+
+  <!-- QR Modal -->
+  <div id="qr-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;padding:20px;overflow-y:auto;">
+    <div style="background:white;border-radius:var(--radius-lg);max-width:400px;margin:0 auto;overflow:hidden;">
+      <div style="background:var(--primary);padding:20px;color:white;">
+        <div style="font-family:'Fraunces',serif;font-size:1.2rem;font-weight:700;">Your Health QR</div>
+        <div style="font-size:0.82rem;opacity:0.85;">Scan this to access your records offline</div>
+      </div>
+      <div style="padding:30px;text-align:center;">
+        <canvas id="qr-canvas" style="max-width:200px;margin:0 auto;"></canvas>
+        <p style="margin-top:16px;font-size:0.85rem;color:var(--text-muted);">Show this QR to any doctor or pharmacy.</p>
+      </div>
+      <div style="padding:0 20px 20px;text-align:right;">
+        <button class="btn btn-outline" onclick="closeQRModal()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/app.js"></script>
+  <script src="/js/symptom-checker.js"></script>
+  <script>
+    let currentTriageResult = null;
+    let selectedTags = [];
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      Auth.requireAuth();
+      const user = Auth.user;
+      document.getElementById('user-name').textContent = user?.name?.split(' ')[0] || '';
+      document.getElementById('greeting-name').textContent = user?.name?.split(' ')[0] || 'friend';
+
+      const hour = new Date().getHours();
+      document.getElementById('greeting-time').textContent =
+        hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : 'evening';
+
+      // Render symptom tags
+      const tagsContainer = document.getElementById('symptom-tags');
+      tagsContainer.innerHTML = SymptomChecker.commonSymptoms.map(s =>
+        `<span class="symptom-tag" onclick="toggleTag(this, '${s}')">${s}</span>`
+      ).join('');
+
+      // Connection banner
+      NetworkSpeed.detect().then(() => {
+        const banner = document.getElementById('home-conn-banner');
+        const { label, cls } = NetworkSpeed.getLabel();
+        banner.className = `conn-banner ${cls}`;
+        banner.textContent = label;
+      });
+
+      await loadDashboardData();
+      await loadDoctors();
+      loadOfflineRecords();
+      updateOfflineQueueCount();
+    });
+
+    function toggleTag(el, tag) {
+      el.classList.toggle('selected');
+      if (selectedTags.includes(tag)) {
+        selectedTags = selectedTags.filter(t => t !== tag);
+      } else {
+        selectedTags.push(tag);
+      }
+    }
+
+    async function loadDashboardData() {
+      try {
+        const [consultations, prescriptions] = await Promise.all([
+          API.get('/consultations'),
+          API.get('/prescriptions')
+        ]);
+        renderRecentConsultations(consultations.slice(0, 3));
+        renderConsultationsList(consultations);
+        renderPrescriptions(prescriptions);
+        checkActiveConsultation(consultations);
+      } catch (err) {
+        renderRecentConsultations([]);
+      }
+    }
+
+    async function loadDoctors() {
+      try {
+        const doctors = await API.get('/auth/doctors');
+        const select = document.getElementById('doctor-select');
+        if (doctors.length === 0) {
+          select.innerHTML = '<option value="">No doctors registered yet</option>';
+        } else {
+          select.innerHTML = doctors.map(d =>
+            `<option value="${d.id}">Dr. ${d.name} – ${d.village || 'Available'}</option>`
+          ).join('');
+        }
+      } catch {
+        document.getElementById('doctor-select').innerHTML =
+          '<option value="">Unable to load doctors</option>';
+      }
+    }
+
+    function renderRecentConsultations(list) {
+      const el = document.getElementById('recent-consultations');
+      if (!list.length) {
+        el.innerHTML = `<div class="empty-state"><div class="empty-icon">📭</div><p>No consultations yet. <button class="btn btn-secondary btn-sm" onclick="switchTab('consult')">Book one now</button></p></div>`;
+        return;
+      }
+      el.innerHTML = list.map(c => `
+        <div class="consult-item ${c.urgency}" onclick="goToConsultation('${c.id}', '${c.roomId}', '${c.status}')">
+          <div class="consult-header">
+            <div class="consult-name">${c.doctorName}</div>
+            ${statusBadge(c.status)}
+          </div>
+          <div class="consult-symptoms">${c.symptoms?.slice(0,80)}...</div>
+          <div class="consult-meta">${timeAgo(c.createdAt)} • ${urgencyBadge(c.urgency)}</div>
+        </div>`
+      ).join('');
+    }
+
+    function renderConsultationsList(list) {
+      const el = document.getElementById('my-consultations');
+      if (!list.length) {
+        el.innerHTML = `<div class="empty-state"><div class="empty-icon">📭</div><p>No consultations yet</p></div>`;
+        return;
+      }
+      el.innerHTML = list.map(c => `
+        <div class="consult-item ${c.urgency}" onclick="goToConsultation('${c.id}', '${c.roomId}', '${c.status}')">
+          <div class="consult-header">
+            <div class="consult-name">${c.doctorName}</div>
+            ${statusBadge(c.status)}
+          </div>
+          <div class="consult-symptoms">${c.symptoms?.slice(0,80)}</div>
+          <div class="consult-meta">${formatDate(c.createdAt)} ${formatTime(c.createdAt)} • ${urgencyBadge(c.urgency)}</div>
+          ${c.status === 'active' || c.status === 'pending' ?
+            `<button class="btn btn-primary btn-sm" onclick="event.stopPropagation();joinConsultation('${c.id}','${c.roomId}')">📞 Join Call</button>` : ''}
+        </div>`
+      ).join('');
+    }
+
+    function checkActiveConsultation(consultations) {
+      const active = consultations.find(c => c.status === 'active');
+      if (active) {
+        document.getElementById('active-consult-banner').classList.remove('hidden');
+        document.getElementById('active-consult-banner').innerHTML = `
+          <div class="card" style="background:var(--green-50);border:2px solid var(--green-400);">
+            <div style="font-weight:700;color:var(--green-800);margin-bottom:8px;">🔴 Active Consultation</div>
+            <p style="font-size:0.85rem;margin-bottom:12px;">Dr. ${active.doctorName} is available for your consultation</p>
+            <button class="btn btn-primary btn-full" onclick="joinConsultation('${active.id}', '${active.roomId}')">
+              📞 Join Call Now
+            </button>
+          </div>`;
+      }
+    }
+
+    function renderPrescriptions(list) {
+      const el = document.getElementById('prescriptions-list');
+      if (!list.length) {
+        el.innerHTML = `<div class="empty-state"><div class="empty-icon">📄</div><p>No prescriptions yet</p></div>`;
+        return;
+      }
+      el.innerHTML = list.map(rx => `
+        <div class="rx-card">
+          <div class="rx-header">
+            <div>
+              <div class="rx-brand">🏥 GramHealth Prescription</div>
+              <div style="font-size:0.78rem;color:var(--green-700);">Dr. ${rx.doctorName}</div>
+            </div>
+            <div class="rx-date">${formatDate(rx.issuedAt)}</div>
+          </div>
+          <div class="rx-med-list">
+            ${(rx.medicines || []).map(m => `
+              <div class="rx-med">
+                <div class="rx-med-dot"></div>
+                <div>
+                  <div class="rx-med-name">${m.name}</div>
+                  <div class="rx-med-dose">${m.dosage || ''} • ${m.duration || ''}</div>
+                </div>
+              </div>`).join('')}
+          </div>
+          ${rx.notes ? `<div style="margin-top:10px;padding:10px;background:white;border-radius:8px;font-size:0.82rem;"><strong>Notes:</strong> ${rx.notes}</div>` : ''}
+          ${rx.nextVisit ? `<div style="font-size:0.8rem;margin-top:8px;color:var(--green-700);">📅 Next visit: ${rx.nextVisit}</div>` : ''}
+        </div>`
+      ).join('');
+    }
+
+    function loadOfflineRecords() {
+      const records = HealthRecords.getAll();
+      const el = document.getElementById('offline-records');
+      if (!records.length) {
+        el.innerHTML = '<p class="text-muted text-sm">No saved symptom checks</p>';
+        return;
+      }
+      el.innerHTML = records.slice(0, 5).map(r => `
+        <div class="card" style="padding:12px;margin-bottom:8px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+            <span style="font-weight:600;font-size:0.88rem;">${r.symptoms?.slice(0,50) || 'Symptom check'}...</span>
+            ${urgencyBadge(r.riskLevel || 'low')}
+          </div>
+          <div class="text-xs text-muted">${formatDate(r.savedAt)}</div>
+        </div>`
+      ).join('');
+    }
+
+    function runSymptomCheck() {
+      const text = document.getElementById('symptom-text').value.trim();
+      if (!text && selectedTags.length === 0) {
+        Toast.warning('Please describe your symptoms first');
+        return;
+      }
+      const result = SymptomChecker.analyze(text, selectedTags);
+      currentTriageResult = result;
+      
+      // Save offline
+      HealthRecords.save({
+        symptoms: text + ' ' + selectedTags.join(', '),
+        riskLevel: result.riskLevel,
+        conditions: result.conditions
+      });
+
+      const resultsEl = document.getElementById('symptom-results');
+      resultsEl.innerHTML = SymptomChecker.renderResult(result);
+      resultsEl.classList.remove('hidden');
+      document.getElementById('consult-after-triage').classList.remove('hidden');
+      resultsEl.scrollIntoView({ behavior: 'smooth' });
+
+      // Pre-fill consult form
+      const symptoms = text + (selectedTags.length ? ' (' + selectedTags.join(', ') + ')' : '');
+      document.getElementById('consult-symptoms').value = symptoms;
+      if (result.riskLevel === 'high') {
+        document.getElementById('urgency-select').value = 'high';
+      }
+    }
+
+    async function requestConsultation() {
+      const doctorId = document.getElementById('doctor-select').value;
+      const symptoms = document.getElementById('consult-symptoms').value.trim();
+      const urgency = document.getElementById('urgency-select').value;
+      const errorEl = document.getElementById('consult-error');
+      const btn = document.getElementById('consult-btn');
+
+      if (!doctorId) { errorEl.textContent = 'Please select a doctor'; return; }
+      if (!symptoms) { errorEl.textContent = 'Please describe your symptoms'; return; }
+
+      btn.disabled = true;
+      btn.innerHTML = '<div class="spinner"></div> Sending...';
+      errorEl.textContent = '';
+
+      const payload = {
+        doctorId, symptoms, urgency,
+        triageResult: currentTriageResult
+      };
+
+      try {
+        const consult = await API.post('/consultations', payload);
+        Toast.success('Consultation request sent!');
+        await loadDashboardData();
+        switchTab('consult');
+      } catch (err) {
+        if (!navigator.onLine) {
+          OfflineQueue.add({ endpoint: '/consultations', options: { method: 'POST', body: JSON.stringify(payload) } });
+          Toast.warning('Saved offline. Will send when connected.');
+          updateOfflineQueueCount();
+        } else {
+          errorEl.textContent = err.message;
+        }
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '📤 Send Request';
+      }
+    }
+
+    function updateOfflineQueueCount() {
+      const q = OfflineQueue.getAll();
+      const section = document.getElementById('offline-queue-section');
+      const countSpan = document.getElementById('queue-count');
+      if (q.length > 0) {
+        section.classList.remove('hidden');
+        countSpan.textContent = q.length;
+      } else {
+        section.classList.add('hidden');
+      }
+    }
+
+    function goToConsultation(id, roomId, status) {
+      if (status === 'active') {
+        joinConsultation(id, roomId);
+      }
+    }
+
+    function joinConsultation(id, roomId) {
+      sessionStorage.setItem('gh_consultation_id', id);
+      sessionStorage.setItem('gh_room_id', roomId);
+      sessionStorage.setItem('gh_role', 'patient');
+      window.location.href = '/consultation.html';
+    }
+
+    function switchTab(tab) {
+      ['home', 'symptoms', 'consult', 'records'].forEach(t => {
+        document.getElementById(`panel-${t}`).classList.toggle('hidden', t !== tab);
+        document.getElementById(`tab-${t}`)?.classList.toggle('active', t === tab);
+      });
+      if (tab === 'records') loadOfflineRecords();
+    }
+
+    // QR functions
+    function showQRModal() {
+      const user = Auth.user;
+      if (!user || !user.id) {
+        Toast.error('User ID not found');
+        return;
+      }
+      // Create a simple encrypted payload (for demo only)
+      const secret = "gramhealth-secret"; // In production use a real secret
+      const payload = btoa(user.id + ':' + secret);
+      // Generate QR
+      QRCode.toCanvas(document.getElementById('qr-canvas'), payload, {
+        width: 200,
+        margin: 1,
+        color: { dark: '#16a34a', light: '#ffffff' }
+      }, function (error) {
+        if (error) {
+          console.error(error);
+          Toast.error('Failed to generate QR');
+        } else {
+          document.getElementById('qr-modal').style.display = 'block';
+        }
+      });
+    }
+
+    function closeQRModal() {
+      document.getElementById('qr-modal').style.display = 'none';
+    }
+
+    // Make OfflineQueue.processQueue available globally for the Sync Now button
+    window.OfflineQueue = OfflineQueue;
+  </script>
+</body>
+</html>
