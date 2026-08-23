@@ -6,15 +6,25 @@ const Auth = {
   get token() { return localStorage.getItem('gh_token'); },
   get user() {
     const u = localStorage.getItem('gh_user');
-    return u ? JSON.parse(u) : null;
+    if (!u) return null;
+    try {
+      return JSON.parse(u);
+    } catch {
+      this.clear();
+      return null;
+    }
   },
   login(token, user) {
     localStorage.setItem('gh_token', token);
     localStorage.setItem('gh_user', JSON.stringify(user));
   },
-  logout() {
+  clear() {
     localStorage.removeItem('gh_token');
     localStorage.removeItem('gh_user');
+    navigator.serviceWorker?.controller?.postMessage({ type: 'CLEAR_SESSION_CACHE' });
+  },
+  logout() {
+    this.clear();
     window.location.href = '/login.html';
   },
   isLoggedIn() { return !!this.token; },
@@ -38,7 +48,25 @@ const API = {
     if (Auth.token) headers['Authorization'] = `Bearer ${Auth.token}`;
     try {
       const res = await fetch(`${API_BASE}${endpoint}`, { ...options, headers });
-      const data = await res.json();
+      const responseText = await res.text();
+      let data = {};
+      if (responseText) {
+        try {
+          data = JSON.parse(responseText);
+        } catch {
+          data = { error: responseText };
+        }
+      }
+
+      // A saved token can become invalid after JWT_SECRET changes or it expires.
+      // Clear it automatically so the user can sign in again instead of being
+      // left on a dashboard that repeatedly shows "Invalid token".
+      if (res.status === 401 && !endpoint.startsWith('/auth/')) {
+        Auth.clear();
+        window.location.replace('/login.html?session=expired');
+        throw new Error('Your session expired. Please sign in again.');
+      }
+
       if (!res.ok) throw new Error(data.error || 'Request failed');
       return data;
     } catch (err) {
@@ -64,7 +92,11 @@ const Toast = {
     const icons = { success: '✅', error: '❌', warning: '⚠️', info: 'ℹ️' };
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
-    toast.innerHTML = `<span>${icons[type] || ''}</span><span>${msg}</span>`;
+    const icon = document.createElement('span');
+    const message = document.createElement('span');
+    icon.textContent = icons[type] || '';
+    message.textContent = String(msg ?? '');
+    toast.append(icon, message);
     this.container.appendChild(toast);
     setTimeout(() => toast.remove(), duration);
   },
@@ -76,14 +108,20 @@ const Toast = {
 
 // ─── Offline Queue ─────────────────────────────────────────────────────────
 const OfflineQueue = {
-  key: 'gh_offline_queue',
+  get key() { return `gh_offline_queue_${Auth.user?.id || 'guest'}`; },
   add(item) {
     const q = this.getAll();
     q.push({ ...item, id: Date.now(), timestamp: new Date().toISOString() });
     localStorage.setItem(this.key, JSON.stringify(q));
   },
   getAll() {
-    return JSON.parse(localStorage.getItem(this.key) || '[]');
+    try {
+      const value = JSON.parse(localStorage.getItem(this.key) || '[]');
+      return Array.isArray(value) ? value : [];
+    } catch {
+      localStorage.removeItem(this.key);
+      return [];
+    }
   },
   clear() { localStorage.removeItem(this.key); },
   async processQueue() {
@@ -123,14 +161,20 @@ const ConnectionMonitor = {
 
 // ─── Local Health Records ──────────────────────────────────────────────────
 const HealthRecords = {
-  key: 'gh_health_records',
+  get key() { return `gh_health_records_${Auth.user?.id || 'guest'}`; },
   save(record) {
     const records = this.getAll();
     records.unshift({ ...record, id: Date.now(), savedAt: new Date().toISOString() });
     localStorage.setItem(this.key, JSON.stringify(records.slice(0, 50)));
   },
   getAll() {
-    return JSON.parse(localStorage.getItem(this.key) || '[]');
+    try {
+      const value = JSON.parse(localStorage.getItem(this.key) || '[]');
+      return Array.isArray(value) ? value : [];
+    } catch {
+      localStorage.removeItem(this.key);
+      return [];
+    }
   }
 };
 
@@ -174,6 +218,20 @@ const NetworkSpeed = {
 function formatDate(iso) {
   if (!iso) return '';
   return new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+function formatDoctorName(name) {
+  const value = String(name || 'Doctor').trim();
+  return /^dr\.?\s/i.test(value) ? value : `Dr. ${value}`;
 }
 
 function formatTime(iso) {

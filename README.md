@@ -180,7 +180,7 @@ gramhealth/
 ## 🚀 Installation & Running
 
 ### Prerequisites
-- Node.js v16+ installed
+- Node.js v18+ installed
 - npm
 
 ### Step 1: Install dependencies
@@ -194,7 +194,9 @@ npm install
 cd gramhealth
 cp .env.example .env
 ```
-Set `JWT_SECRET` and `GEMINI_API_KEY` in `.env`. The Gemini credential is used only by the backend and is never sent to the browser.
+Set `JWT_SECRET` and `GEMINI_API_KEY` in `.env`. Keep `JWT_SECRET` stable because changing it invalidates existing login sessions. The Gemini credential is used only by the backend and is never sent to the browser.
+
+For a production deployment, set `NODE_ENV=production` and `ALLOW_STAFF_REGISTRATION=false`. This prevents public registration of doctor and pharmacy accounts; existing administrator-created/demo staff accounts can still sign in.
 
 Nearby-pharmacy searches use OpenStreetMap through Nominatim and Overpass, with Photon as a geocoding fallback. The backend caches searches, limits Nominatim to one request per second, identifies the application, and displays OpenStreetMap attribution. The public services are intended for moderate, user-triggered traffic; review the [Nominatim usage policy](https://operations.osmfoundation.org/policies/nominatim/) before production deployment and configure the service URLs in `.env` if you use hosted or self-managed alternatives.
 
@@ -204,10 +206,11 @@ cd gramhealth
 node generate-icons.js
 ```
 
-### Step 4: Start the server
+### Step 4: Check and start the server
 ```bash
-cd gramhealth/backend
-node server.js
+cd gramhealth
+npm run check
+npm start
 ```
 
 ### Step 5: Open in browser
@@ -272,8 +275,8 @@ npm run dev
 #### 7. Pharmacy Search (1 min)
 - Navigate to Pharmacy page
 - Search "Paracetamol"
-- Show results across 3 pharmacies with prices
-- Show out-of-stock item
+- Enter a town, district, or `latitude,longitude`
+- Show real nearby mapped pharmacies with distance and map links
 
 #### 8. Offline Demo (30 sec)
 - Disconnect internet (DevTools → Network → Offline)
@@ -296,8 +299,8 @@ npm run dev
 | Offline queue | LocalStorage + background sync |
 | AI Triage | 15-condition rule-based engine |
 | Prescriptions | REST API + JSON storage |
-| Medicine search | Multi-pharmacy search + offline cache |
-| Auth | JWT + bcrypt |
+| Pharmacy search | OpenStreetMap location search + local-directory fallback |
+| Auth | JWT + bcrypt, role checks, login throttling |
 
 ---
 

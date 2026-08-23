@@ -452,7 +452,7 @@
           select.innerHTML = `<option value="">${t('no_doctors')}</option>`;
         } else {
           select.innerHTML = doctors.map(d =>
-            `<option value="${d.id}">Dr. ${d.name} – ${d.village || t('available')}</option>`
+            `<option value="${escapeHtml(d.id)}">${escapeHtml(formatDoctorName(d.name))} – ${escapeHtml(d.village || t('available'))}</option>`
           ).join('');
         }
       } catch {
@@ -470,10 +470,10 @@
       el.innerHTML = list.map(c => `
         <div class="consult-item ${c.urgency}" onclick="goToConsultation('${c.id}', '${c.roomId}', '${c.status}')">
           <div class="consult-header">
-            <div class="consult-name">${c.doctorName}</div>
+            <div class="consult-name">${escapeHtml(formatDoctorName(c.doctorName))}</div>
             ${statusBadge(c.status)}
           </div>
-          <div class="consult-symptoms">${c.symptoms?.slice(0, 80)}...</div>
+          <div class="consult-symptoms">${escapeHtml(c.symptoms?.slice(0, 80))}...</div>
           <div class="consult-meta">${timeAgo(c.createdAt)} • ${urgencyBadge(c.urgency)}</div>
         </div>`
       ).join('');
@@ -488,10 +488,10 @@
       el.innerHTML = list.map(c => `
         <div class="consult-item ${c.urgency}" onclick="goToConsultation('${c.id}', '${c.roomId}', '${c.status}')">
           <div class="consult-header">
-            <div class="consult-name">${c.doctorName}</div>
+            <div class="consult-name">${escapeHtml(formatDoctorName(c.doctorName))}</div>
             ${statusBadge(c.status)}
           </div>
-          <div class="consult-symptoms">${c.symptoms?.slice(0, 80)}</div>
+          <div class="consult-symptoms">${escapeHtml(c.symptoms?.slice(0, 80))}</div>
           <div class="consult-meta">${formatDate(c.createdAt)} ${formatTime(c.createdAt)} • ${urgencyBadge(c.urgency)}</div>
           ${c.status === 'active' || c.status === 'pending' ?
             `<button class="btn btn-primary btn-sm" onclick="event.stopPropagation();joinConsultation('${c.id}','${c.roomId}')">${t('join_call')}</button>` : ''}
@@ -507,7 +507,7 @@
         banner.innerHTML = `
           <div class="card" style="background:var(--green-50);border:2px solid var(--green-400);">
             <div style="font-weight:700;color:var(--green-800);margin-bottom:8px;">${t('active_session')}</div>
-            <p style="font-size:0.85rem;margin-bottom:12px;">Dr. ${active.doctorName} ${t('active_consult_msg')}</p>
+            <p style="font-size:0.85rem;margin-bottom:12px;">${escapeHtml(formatDoctorName(active.doctorName))} ${t('active_consult_msg')}</p>
             <button class="btn btn-primary btn-full" onclick="joinConsultation('${active.id}', '${active.roomId}')">
               ${t('join_call_now')}
             </button>
@@ -528,7 +528,7 @@
           <div class="rx-header">
             <div>
               <div class="rx-brand">🏥 GramHealth Prescription</div>
-              <div style="font-size:0.78rem;color:var(--green-700);">Dr. ${rx.doctorName}</div>
+              <div style="font-size:0.78rem;color:var(--green-700);">${escapeHtml(formatDoctorName(rx.doctorName))}</div>
             </div>
             <div class="rx-date">${formatDate(rx.issuedAt)}</div>
           </div>
@@ -537,13 +537,13 @@
               <div class="rx-med">
                 <div class="rx-med-dot"></div>
                 <div>
-                  <div class="rx-med-name">${m.name}</div>
-                  <div class="rx-med-dose">${m.dosage || ''} • ${m.duration || ''}</div>
+                  <div class="rx-med-name">${escapeHtml(m.name)}</div>
+                  <div class="rx-med-dose">${escapeHtml(m.dosage || '')} • ${escapeHtml(m.duration || '')}</div>
                 </div>
               </div>`).join('')}
           </div>
-          ${rx.notes ? `<div style="margin-top:10px;padding:10px;background:white;border-radius:8px;font-size:0.82rem;"><strong>${t('notes')}:</strong> ${rx.notes}</div>` : ''}
-          ${rx.nextVisit ? `<div style="font-size:0.8rem;margin-top:8px;color:var(--green-700);">📅 ${t('next_visit')}: ${rx.nextVisit}</div>` : ''}
+          ${rx.notes ? `<div style="margin-top:10px;padding:10px;background:white;border-radius:8px;font-size:0.82rem;"><strong>${t('notes')}:</strong> ${escapeHtml(rx.notes)}</div>` : ''}
+          ${rx.nextVisit ? `<div style="font-size:0.8rem;margin-top:8px;color:var(--green-700);">📅 ${t('next_visit')}: ${escapeHtml(rx.nextVisit)}</div>` : ''}
         </div>`
       ).join('');
     }
@@ -558,7 +558,7 @@
       el.innerHTML = records.slice(0, 5).map(r => `
         <div class="card" style="padding:12px;margin-bottom:8px;">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-            <span style="font-weight:600;font-size:0.88rem;">${r.symptoms?.slice(0,50) || t('symptom_check')}...</span>
+            <span style="font-weight:600;font-size:0.88rem;">${escapeHtml(r.symptoms?.slice(0,50) || t('symptom_check'))}...</span>
             ${urgencyBadge(r.riskLevel || 'low')}
           </div>
           <div class="text-xs text-muted">${formatDate(r.savedAt)}</div>
@@ -644,9 +644,9 @@
         Toast.error(t('user_id_not_found'));
         return;
       }
-      // Simple payload (for demo only; in production use proper encryption)
-      const secret = "gramhealth-secret";
-      const payload = btoa(user.id + ':' + secret);
+      // The QR contains only a patient identifier. The backend permits profile
+      // access only to an authenticated doctor.
+      const payload = btoa('gramhealth:' + user.id);
       QRCode.toCanvas(document.getElementById('qr-canvas'), payload, {
         width: 200,
         margin: 1,

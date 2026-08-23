@@ -96,9 +96,63 @@
     "triageResult": null,
     "urgency": "medium",
     "notes": "",
-    "status": "pending",
+    "status": "completed",
     "roomId": "b9787a6c-e204-4980-b6f2-28f2cd59cc0b",
     "createdAt": "2026-03-12T20:42:54.159Z",
-    "updatedAt": "2026-03-12T20:42:54.159Z"
+    "updatedAt": "2026-08-23T18:42:38.782Z"
+  },
+  {
+    "id": "b6029fe1-33f0-4c53-9c2c-3f31d1451d11",
+    "patientId": "6dfaa0a3-6b18-4539-908c-a955bf0a283d",
+    "patientName": "Chirag Patil",
+    "patientVillage": "Palghar",
+    "patientAge": 20,
+    "doctorId": "6e72e49f-9e1f-4a55-a142-44f8e1d0448b",
+    "doctorName": "Dr. Priya Sharma",
+    "symptoms": "(Fever, Body ache)",
+    "triageResult": {
+      "riskLevel": "low",
+      "conditions": []
+    },
+    "urgency": "medium",
+    "notes": "",
+    "status": "completed",
+    "roomId": "e6e4bffc-bedb-4637-b206-e6541c75f22c",
+    "createdAt": "2026-08-23T18:36:34.197Z",
+    "updatedAt": "2026-08-23T18:38:07.845Z"
+  },
+  {
+    "id": "557abe38-0471-498c-8368-5bde7149a1dc",
+    "patientId": "0caa0f80-2e94-41d9-a11c-db8d16a486ab",
+    "patientName": "Ramu Kumar",
+    "patientVillage": "Rampur",
+    "patientAge": 35,
+    "doctorId": "6e72e49f-9e1f-4a55-a142-44f8e1d0448b",
+    "doctorName": "Dr. Priya Sharma",
+    "symptoms": "nausea",
+    "triageResult": null,
+    "urgency": "low",
+    "notes": "",
+    "status": "completed",
+    "roomId": "97c63b5a-59a4-4f43-8448-a1232e8a612c",
+    "createdAt": "2026-08-23T18:41:39.956Z",
+    "updatedAt": "2026-08-23T18:42:22.417Z"
+  },
+  {
+    "id": "24415342-0a37-4e41-8e5d-ee287ab979f6",
+    "patientId": "0caa0f80-2e94-41d9-a11c-db8d16a486ab",
+    "patientName": "Ramu Kumar",
+    "patientVillage": "Rampur",
+    "patientAge": 35,
+    "doctorId": "6e72e49f-9e1f-4a55-a142-44f8e1d0448b",
+    "doctorName": "Dr. Priya Sharma",
+    "symptoms": "nausea",
+    "triageResult": null,
+    "urgency": "high",
+    "notes": "",
+    "status": "pending",
+    "roomId": "92661568-092e-4534-846f-af232d28b32e",
+    "createdAt": "2026-08-23T18:43:08.738Z",
+    "updatedAt": "2026-08-23T18:43:08.738Z"
   }
 ]

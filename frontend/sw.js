@@ -1,7 +1,7 @@
 // ─── GramHealth Service Worker ────────────────────────────────────────────
-const CACHE_NAME = 'gramhealth-v1.8';
-const STATIC_CACHE = 'gramhealth-static-v1.8';
-const DYNAMIC_CACHE = 'gramhealth-dynamic-v1.8';
+const CACHE_NAME = 'gramhealth-v2.0';
+const STATIC_CACHE = 'gramhealth-static-v2.0';
+const DYNAMIC_CACHE = 'gramhealth-dynamic-v2.0';
 
 const STATIC_ASSETS = [
   '/',
@@ -55,9 +55,12 @@ self.addEventListener('fetch', (event) => {
   // Skip non-GET and API calls (let them fail naturally when offline)
   if (request.method !== 'GET') return;
 
-  // API requests: network first, queue if offline
+  // Only cache public API responses. Medical and account data must never be
+  // reused across users of a shared device.
   if (url.pathname.startsWith('/api/')) {
-    event.respondWith(networkFirst(request));
+    event.respondWith(isPublicApi(url.pathname)
+      ? networkFirst(request)
+      : networkOnly(request));
     return;
   }
 
@@ -114,6 +117,25 @@ async function networkFirst(request) {
   }
 }
 
+function isPublicApi(pathname) {
+  return pathname === '/api/health' ||
+    pathname === '/api/auth/doctors' ||
+    pathname === '/api/pharmacy' ||
+    pathname === '/api/pharmacy/search' ||
+    pathname === '/api/pharmacy/nearby';
+}
+
+async function networkOnly(request) {
+  try {
+    return await fetch(request);
+  } catch {
+    return new Response(JSON.stringify({ error: 'Offline', offline: true }), {
+      status: 503,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
+}
+
 async function networkFirstPage(request) {
   try {
     const response = await fetch(request);
@@ -138,6 +160,12 @@ async function networkFirstPage(request) {
 self.addEventListener('sync', (event) => {
   if (event.tag === 'sync-consultations') {
     event.waitUntil(syncPendingData());
+  }
+});
+
+self.addEventListener('message', (event) => {
+  if (event.data?.type === 'CLEAR_SESSION_CACHE') {
+    event.waitUntil(caches.delete(DYNAMIC_CACHE));
   }
 });
 

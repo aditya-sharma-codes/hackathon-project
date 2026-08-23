@@ -1,20 +1,23 @@
 const express = require('express');
-const jwt = require('jsonwebtoken');
-const { v4: uuidv4 } = require('uuid');
+const { randomUUID } = require('crypto');
 const { findNearbyPharmacies } = require('../services/nearbyPharmacies');
+const { authenticate, requireRole } = require('../middleware/auth');
 
-const JWT_SECRET = process.env.JWT_SECRET;
-
-const authenticate = (req, res, next) => {
-  const token = req.headers.authorization?.split(' ')[1];
-  if (!token) return res.status(401).json({ error: 'No token' });
-  try {
-    req.user = jwt.verify(token, JWT_SECRET);
-    next();
-  } catch {
-    res.status(401).json({ error: 'Invalid token' });
-  }
-};
+function normalizeMedicine(medicine = {}) {
+  const name = typeof medicine.name === 'string' ? medicine.name.trim() : '';
+  const quantity = Number(medicine.quantity);
+  const price = Number(medicine.price);
+  if (!name || name.length > 120 || !Number.isFinite(quantity) || quantity < 0 ||
+      !Number.isFinite(price) || price < 0) return null;
+  return {
+    name,
+    quantity,
+    price,
+    available: typeof medicine.available === 'boolean'
+      ? medicine.available
+      : quantity > 0
+  };
+}
 
 module.exports = (readData, writeData) => {
   const router = express.Router();
@@ -48,8 +51,9 @@ module.exports = (readData, writeData) => {
 
   // Search medicine across all pharmacies
   router.get('/search', (req, res) => {
-    const { q } = req.query;
+    const q = typeof req.query.q === 'string' ? req.query.q.trim() : '';
     if (!q) return res.json([]);
+    if (q.length > 120) return res.status(400).json({ error: 'Search term is too long' });
     const inventory = readData('pharmacy_inventory');
     const results = [];
     inventory.forEach(pharmacy => {
@@ -64,23 +68,51 @@ module.exports = (readData, writeData) => {
   });
 
   // Update medicine stock (pharmacy role)
-  router.patch('/:pharmacyId/medicine', authenticate, (req, res) => {
+  router.patch('/:pharmacyId/medicine', authenticate, requireRole('pharmacy'), (req, res) => {
     const { medicineName, quantity, price, available } = req.body;
     const inventory = readData('pharmacy_inventory');
     const phIdx = inventory.findIndex(p => p.id === req.params.pharmacyId);
     if (phIdx === -1) return res.status(404).json({ error: 'Pharmacy not found' });
+    if (inventory[phIdx].ownerId && inventory[phIdx].ownerId !== req.user.id) {
+      return res.status(403).json({ error: 'You cannot update another pharmacy inventory' });
+    }
 
+    const cleanName = typeof medicineName === 'string' ? medicineName.trim() : '';
+    const cleanQuantity = quantity == null ? undefined : Number(quantity);
+    const cleanPrice = price == null ? undefined : Number(price);
+    if (!cleanName || cleanName.length > 120) {
+      return res.status(400).json({ error: 'Enter a valid medicine name' });
+    }
+    if (cleanQuantity !== undefined && (!Number.isFinite(cleanQuantity) || cleanQuantity < 0)) {
+      return res.status(400).json({ error: 'Quantity must be zero or greater' });
+    }
+    if (cleanPrice !== undefined && (!Number.isFinite(cleanPrice) || cleanPrice < 0)) {
+      return res.status(400).json({ error: 'Price must be zero or greater' });
+    }
+    if (available !== undefined && typeof available !== 'boolean') {
+      return res.status(400).json({ error: 'Availability must be true or false' });
+    }
+
+    if (!Array.isArray(inventory[phIdx].medicines)) inventory[phIdx].medicines = [];
     const medIdx = inventory[phIdx].medicines.findIndex(m =>
-      m.name.toLowerCase() === medicineName.toLowerCase()
+      m.name.toLowerCase() === cleanName.toLowerCase()
     );
     if (medIdx === -1) {
-      inventory[phIdx].medicines.push({ name: medicineName, quantity, price, available });
+      inventory[phIdx].medicines.push({
+        name: cleanName,
+        quantity: cleanQuantity ?? 0,
+        price: cleanPrice ?? 0,
+        available: available ?? (cleanQuantity > 0)
+      });
     } else {
+      const updatedQuantity = cleanQuantity ?? inventory[phIdx].medicines[medIdx].quantity;
       inventory[phIdx].medicines[medIdx] = {
         ...inventory[phIdx].medicines[medIdx],
-        quantity: quantity ?? inventory[phIdx].medicines[medIdx].quantity,
-        price: price ?? inventory[phIdx].medicines[medIdx].price,
-        available: available ?? inventory[phIdx].medicines[medIdx].available
+        quantity: updatedQuantity,
+        price: cleanPrice ?? inventory[phIdx].medicines[medIdx].price,
+        available: available ?? (cleanQuantity !== undefined
+          ? updatedQuantity > 0
+          : inventory[phIdx].medicines[medIdx].available)
       };
     }
     writeData('pharmacy_inventory', inventory);
@@ -88,9 +120,28 @@ module.exports = (readData, writeData) => {
   });
 
   // Add new pharmacy
-  router.post('/', authenticate, (req, res) => {
+  router.post('/', authenticate, requireRole('pharmacy'), (req, res) => {
+    const pharmacyName = typeof req.body.pharmacyName === 'string'
+      ? req.body.pharmacyName.trim()
+      : '';
+    const location = typeof req.body.location === 'string' ? req.body.location.trim() : '';
+    const medicines = Array.isArray(req.body.medicines)
+      ? req.body.medicines.map(normalizeMedicine)
+      : [];
+    if (!pharmacyName || pharmacyName.length > 150 || !location || location.length > 250) {
+      return res.status(400).json({ error: 'Valid pharmacy name and location are required' });
+    }
+    if (medicines.some(medicine => !medicine) || medicines.length > 100) {
+      return res.status(400).json({ error: 'Invalid pharmacy inventory' });
+    }
     const inventory = readData('pharmacy_inventory');
-    const pharmacy = { id: uuidv4(), ...req.body, medicines: req.body.medicines || [] };
+    const pharmacy = {
+      id: randomUUID(),
+      ownerId: req.user.id,
+      pharmacyName,
+      location,
+      medicines
+    };
     inventory.push(pharmacy);
     writeData('pharmacy_inventory', inventory);
     res.status(201).json(pharmacy);

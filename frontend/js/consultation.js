@@ -113,7 +113,7 @@ const Consultation = {
       Toast.success('Connected to consultation!');
 
       // Update consultation status
-      if (this.consultationId) {
+      if (this.consultationId && Auth.user?.role === 'doctor') {
         API.patch(`/consultations/${this.consultationId}`, { status: 'active' })
           .catch(console.error);
       }
@@ -149,7 +149,7 @@ const Consultation = {
     if (this.call) this.call.close();
     if (this.localStream) this.localStream.getTracks().forEach(t => t.stop());
     if (this.peer) this.peer.destroy();
-    if (this.consultationId) {
+    if (this.consultationId && Auth.user?.role === 'doctor') {
       await API.patch(`/consultations/${this.consultationId}`, { status: 'completed' })
         .catch(console.error);
     }
@@ -226,14 +226,21 @@ const Consultation = {
   saveVoiceMessage(blob) {
     const reader = new FileReader();
     reader.onload = () => {
-      const msgs = JSON.parse(localStorage.getItem('gh_voice_messages') || '[]');
+      const storageKey = `gh_voice_messages_${Auth.user?.id || 'guest'}`;
+      let msgs = [];
+      try {
+        const stored = JSON.parse(localStorage.getItem(storageKey) || '[]');
+        if (Array.isArray(stored)) msgs = stored;
+      } catch {
+        localStorage.removeItem(storageKey);
+      }
       msgs.push({
         id: Date.now(),
         consultationId: this.consultationId,
         data: reader.result,
         timestamp: new Date().toISOString()
       });
-      localStorage.setItem('gh_voice_messages', JSON.stringify(msgs));
+      localStorage.setItem(storageKey, JSON.stringify(msgs.slice(-20)));
       Toast.success('Voice message saved. Will send when connected.');
       this.loadVoiceMessages();
     };
@@ -241,7 +248,16 @@ const Consultation = {
   },
 
   loadVoiceMessages() {
-    const msgs = JSON.parse(localStorage.getItem('gh_voice_messages') || '[]');
+    const storageKey = `gh_voice_messages_${Auth.user?.id || 'guest'}`;
+    let msgs = [];
+    try {
+      const stored = JSON.parse(localStorage.getItem(storageKey) || '[]');
+      if (Array.isArray(stored)) {
+        msgs = stored.filter(message => message.consultationId === this.consultationId);
+      }
+    } catch {
+      localStorage.removeItem(storageKey);
+    }
     const container = document.getElementById('voice-messages-list');
     if (!container) return;
     if (msgs.length === 0) {
@@ -251,7 +267,7 @@ const Consultation = {
     container.innerHTML = msgs.slice(-5).map(m => `
       <div class="card" style="padding:12px;">
         <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:6px;">${formatDate(m.timestamp)} ${formatTime(m.timestamp)}</div>
-        <audio controls src="${m.data}" style="width:100%;height:32px;"></audio>
+        <audio controls src="${escapeHtml(m.data)}" style="width:100%;height:32px;"></audio>
       </div>
     `).join('');
   }

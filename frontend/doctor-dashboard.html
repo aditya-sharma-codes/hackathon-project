@@ -243,9 +243,8 @@
     let currentConsultationId = null;
     let currentRoomId = null;
     let allConsultations = [];
+    let allPrescriptions = [];
     let qrScannerInstance = null;  // for QR scanner
-
-    const QR_SECRET = 'gramhealth-secret'; // must match patient dashboard
 
     // ==================== DASHBOARD INIT ====================
     document.addEventListener('DOMContentLoaded', async () => {
@@ -255,7 +254,7 @@
         window.location.href = '/patient-dashboard.html';
         return;
       }
-      document.getElementById('doctor-name').textContent = 'Dr. ' + (user.name?.split(' ')[0] || '');
+      document.getElementById('doctor-name').textContent = formatDoctorName(user.name || '');
       await loadData();
       setInterval(loadData, 30000); // Auto-refresh every 30s
     });
@@ -263,12 +262,16 @@
     // ==================== DATA LOADING & RENDERING ====================
     async function loadData() {
       try {
-        const consultations = await API.get('/consultations');
+        const [consultations, prescriptions] = await Promise.all([
+          API.get('/consultations'),
+          API.get('/prescriptions')
+        ]);
         allConsultations = consultations;
+        allPrescriptions = prescriptions;
         renderQueue(consultations);
         renderHistory(consultations);
         renderActivePanel(consultations);
-        populateRxSelect(consultations);
+        populateRxSelect(consultations, prescriptions);
         updateStats(consultations);
       } catch (err) {
         Toast.error('Failed to load data: ' + err.message);
@@ -295,12 +298,12 @@
         <div class="consult-item ${c.urgency}" onclick="showPatientModal('${c.id}')">
           <div class="consult-header">
             <div>
-              <div class="consult-name">${c.patientName}</div>
-              <div class="consult-meta">${c.patientVillage || 'Unknown village'} • Age: ${c.patientAge || 'N/A'}</div>
+              <div class="consult-name">${escapeHtml(c.patientName)}</div>
+              <div class="consult-meta">${escapeHtml(c.patientVillage || 'Unknown village')} • Age: ${escapeHtml(c.patientAge || 'N/A')}</div>
             </div>
             ${urgencyBadge(c.urgency)}
           </div>
-          <div class="consult-symptoms" style="margin:6px 0;">${c.symptoms?.slice(0, 100)}...</div>
+          <div class="consult-symptoms" style="margin:6px 0;">${escapeHtml(c.symptoms?.slice(0, 100))}...</div>
           <div style="display:flex; justify-content:space-between; align-items:center;">
             <span class="text-xs text-muted">${timeAgo(c.createdAt)}</span>
             <button class="btn btn-primary btn-sm" onclick="event.stopPropagation();showPatientModal('${c.id}')">👁️ View</button>
@@ -319,10 +322,10 @@
       el.innerHTML = done.map(c => `
         <div class="consult-item">
           <div class="consult-header">
-            <div class="consult-name">${c.patientName}</div>
+            <div class="consult-name">${escapeHtml(c.patientName)}</div>
             ${statusBadge(c.status)}
           </div>
-          <div class="consult-symptoms">${c.symptoms?.slice(0, 80)}</div>
+          <div class="consult-symptoms">${escapeHtml(c.symptoms?.slice(0, 80))}</div>
           <div class="consult-meta">${formatDate(c.updatedAt)} • ${urgencyBadge(c.urgency)}</div>
         </div>`
       ).join('');
@@ -338,18 +341,21 @@
       el.innerHTML = `
         <div class="card" style="background:var(--green-50); border:2px solid var(--green-400);">
           <div style="font-weight:700; color:var(--green-800); margin-bottom:4px;">🔴 Active Session</div>
-          <div style="font-size:0.9rem; font-weight:600;">${active.patientName}</div>
-          <div class="text-sm text-muted">${active.patientVillage || ''} • Age: ${active.patientAge || 'N/A'}</div>
-          <div style="margin:10px 0; padding:10px; background:white; border-radius:8px; font-size:0.85rem;">${active.symptoms}</div>
+          <div style="font-size:0.9rem; font-weight:600;">${escapeHtml(active.patientName)}</div>
+          <div class="text-sm text-muted">${escapeHtml(active.patientVillage || '')} • Age: ${escapeHtml(active.patientAge || 'N/A')}</div>
+          <div style="margin:10px 0; padding:10px; background:white; border-radius:8px; font-size:0.85rem;">${escapeHtml(active.symptoms)}</div>
           <button class="btn btn-primary btn-full" onclick="joinCall('${active.id}', '${active.roomId}')">📞 Rejoin Call</button>
         </div>`;
     }
 
-    function populateRxSelect(list) {
-      const active = list.filter(c => c.status === 'active' || c.status === 'completed');
+    function populateRxSelect(list, prescriptions = allPrescriptions) {
+      const prescribedIds = new Set(prescriptions.map(prescription => prescription.consultationId));
+      const active = list.filter(c =>
+        (c.status === 'active' || c.status === 'completed') && !prescribedIds.has(c.id)
+      );
       const select = document.getElementById('rx-consultation-select');
       select.innerHTML = '<option value="">Select consultation...</option>' +
-        active.map(c => `<option value="${c.id}" data-patient="${c.patientId}">[${c.status}] ${c.patientName} – ${formatDate(c.createdAt)}</option>`).join('');
+        active.map(c => `<option value="${escapeHtml(c.id)}" data-patient="${escapeHtml(c.patientId)}">[${escapeHtml(c.status)}] ${escapeHtml(c.patientName)} – ${formatDate(c.createdAt)}</option>`).join('');
     }
 
     function showPatientModal(consultationId) {
@@ -366,7 +372,7 @@
       document.getElementById('modal-content').innerHTML = `
         <div class="form-group">
           <div class="form-label">Symptoms</div>
-          <div style="background:var(--gray-50); padding:12px; border-radius:8px; font-size:0.88rem;">${c.symptoms}</div>
+          <div style="background:var(--gray-50); padding:12px; border-radius:8px; font-size:0.88rem;">${escapeHtml(c.symptoms)}</div>
         </div>
         ${triage ? `
         <div class="form-group">
@@ -374,8 +380,8 @@
           <div class="risk-indicator ${triage.riskLevel === 'high' ? 'risk-high' : triage.riskLevel === 'medium' ? 'risk-medium' : 'risk-low'}">
             <div class="risk-icon">${triage.riskLevel === 'high' ? '🚨' : triage.riskLevel === 'medium' ? '⚠️' : '✅'}</div>
             <div>
-              <div class="risk-title">${triage.riskLevel?.toUpperCase()} RISK</div>
-              <div class="risk-desc">${triage.conditions?.map(c => c.name).join(', ') || 'Unknown'}</div>
+              <div class="risk-title">${escapeHtml(triage.riskLevel?.toUpperCase())} RISK</div>
+              <div class="risk-desc">${escapeHtml(triage.conditions?.map(c => c.name).join(', ') || 'Unknown')}</div>
             </div>
           </div>
         </div>` : ''}
@@ -576,8 +582,9 @@
     function handleQR(decodedText) {
       try {
         const decoded = atob(decodedText);
-        const [patientId, secret] = decoded.split(':');
-        if (secret !== QR_SECRET) throw new Error('Invalid secret');
+        const parts = decoded.split(':');
+        const patientId = parts[0] === 'gramhealth' ? parts[1] : parts[0];
+        if (!/^[0-9a-f-]{36}$/i.test(patientId || '')) throw new Error('Invalid patient ID');
 
         Toast.success('Patient QR scanned');
         fetchPatientById(patientId);
@@ -618,7 +625,7 @@
     // ==================== FETCH PATIENT DATA ====================
     async function fetchPatientById(patientId) {
       try {
-        const patient = await API.get(`/users/${patientId}`);
+        const patient = await API.get(`/auth/users/${patientId}`);
         alert(
           `Patient: ${patient.name}\nAge: ${patient.age}\nVillage: ${patient.village}\nConditions: ${patient.conditions || 'None'}\nAllergies: ${patient.allergies || 'None'}\nEmergency Contact: ${patient.emergencyContact || 'N/A'}`
         );

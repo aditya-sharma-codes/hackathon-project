@@ -5,6 +5,7 @@
   "scripts": {
     "install-deps": "cd backend && npm install",
     "setup": "node generate-icons.js && cd backend && npm install",
+    "check": "node scripts/check.js",
     "start": "cd backend && node server.js",
     "dev": "cd backend && npm run dev"
   }

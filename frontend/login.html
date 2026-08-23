@@ -98,8 +98,14 @@
   <script src="/js/app.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', () => {
-      // Redirect if already logged in
-      Auth.redirectIfLoggedIn();
+      // Keep the login form accessible even when an old token is still saved.
+      // A successful login safely replaces it with a newly issued token.
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('session') === 'expired') {
+        document.getElementById('login-error').textContent =
+          'Your session expired. Please sign in again.';
+        history.replaceState({}, '', '/login.html');
+      }
     });
 
     function switchTab(tab) {

@@ -178,10 +178,10 @@
         const c = await API.get(`/consultations/${consultationId}`);
         document.getElementById('consult-info-content').innerHTML = `
           <div style="display:flex;justify-content:space-between;">
-            <div><strong>${role === 'doctor' ? 'Patient' : 'Doctor'}:</strong> ${role === 'doctor' ? c.patientName : c.doctorName}</div>
+            <div><strong>${role === 'doctor' ? 'Patient' : 'Doctor'}:</strong> ${escapeHtml(role === 'doctor' ? c.patientName : formatDoctorName(c.doctorName))}</div>
             ${urgencyBadge(c.urgency)}
           </div>
-          <div style="margin-top:6px;font-size:0.82rem;">${c.symptoms?.slice(0, 100)}...</div>`;
+          <div style="margin-top:6px;font-size:0.82rem;">${escapeHtml(c.symptoms?.slice(0, 100))}...</div>`;
         
         // Show triage for doctor
         if (role === 'doctor' && c.triageResult) {
@@ -190,8 +190,8 @@
             <div class="risk-indicator ${triage.riskLevel === 'high' ? 'risk-high' : triage.riskLevel === 'medium' ? 'risk-medium' : 'risk-low'}" style="margin-bottom:0;">
               <div class="risk-icon">${triage.riskLevel === 'high' ? '🚨' : triage.riskLevel === 'medium' ? '⚠️' : '✅'}</div>
               <div>
-                <div class="risk-title">AI Triage: ${triage.riskLevel?.toUpperCase()}</div>
-                <div class="risk-desc">${triage.conditions?.slice(0,2).map(c => c.name).join(', ')}</div>
+                <div class="risk-title">AI Triage: ${escapeHtml(triage.riskLevel?.toUpperCase())}</div>
+                <div class="risk-desc">${escapeHtml(triage.conditions?.slice(0,2).map(c => c.name).join(', '))}</div>
               </div>
             </div>`;
         }
@@ -240,8 +240,8 @@
       const user = Auth.user;
       container.innerHTML = chatMessages.map(m => `
         <div style="margin-bottom:8px;">
-          <div style="font-weight:600;font-size:0.78rem;color:var(--text-muted);">${m.sender} · ${formatTime(m.time)}</div>
-          <div style="background:white;padding:8px 10px;border-radius:8px;font-size:0.85rem;margin-top:2px;">${m.text}</div>
+          <div style="font-weight:600;font-size:0.78rem;color:var(--text-muted);">${escapeHtml(m.sender)} · ${formatTime(m.time)}</div>
+          <div style="background:white;padding:8px 10px;border-radius:8px;font-size:0.85rem;margin-top:2px;">${escapeHtml(m.text)}</div>
         </div>`).join('');
       container.scrollTop = container.scrollHeight;
     }
