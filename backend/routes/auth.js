@@ -3,7 +3,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'gramhealth_secret_2024';
+const JWT_SECRET = process.env.JWT_SECRET;
 
 module.exports = (readData, writeData) => {
   const router = express.Router();

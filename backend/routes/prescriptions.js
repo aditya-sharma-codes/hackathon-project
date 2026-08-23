@@ -2,7 +2,7 @@ const express = require('express');
 const jwt = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'gramhealth_secret_2024';
+const JWT_SECRET = process.env.JWT_SECRET;
 
 const authenticate = (req, res, next) => {
   const token = req.headers.authorization?.split(' ')[1];

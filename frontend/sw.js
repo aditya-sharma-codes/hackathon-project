@@ -1,7 +1,7 @@
 // ─── GramHealth Service Worker ────────────────────────────────────────────
-const CACHE_NAME = 'gramhealth-v1.2';
-const STATIC_CACHE = 'gramhealth-static-v1.2';
-const DYNAMIC_CACHE = 'gramhealth-dynamic-v1.2';
+const CACHE_NAME = 'gramhealth-v1.7';
+const STATIC_CACHE = 'gramhealth-static-v1.7';
+const DYNAMIC_CACHE = 'gramhealth-dynamic-v1.7';
 
 const STATIC_ASSETS = [
   '/',
@@ -9,11 +9,13 @@ const STATIC_ASSETS = [
   '/login.html',
   '/patient-dashboard.html',
   '/doctor-dashboard.html',
+  '/pharmacy-dashboard.html',
   '/consultation.html',
   '/pharmacy.html',
   '/css/styles.css',
   '/js/app.js',
   '/js/symptom-checker.js',
+  '/js/i18n.js',
   '/js/consultation.js',
   '/manifest.json',
   'https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Fraunces:ital,wght@0,400;0,600;0,700;1,400&display=swap'

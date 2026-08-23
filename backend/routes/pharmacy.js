@@ -1,8 +1,9 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
+const { findNearbyPharmacies } = require('../services/nearbyPharmacies');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'gramhealth_secret_2024';
+const JWT_SECRET = process.env.JWT_SECRET;
 
 const authenticate = (req, res, next) => {
   const token = req.headers.authorization?.split(' ')[1];
@@ -22,6 +23,27 @@ module.exports = (readData, writeData) => {
   router.get('/', (req, res) => {
     const inventory = readData('pharmacy_inventory');
     res.json(inventory);
+  });
+
+  // Find real mapped pharmacies near a typed location or lat,lng pair.
+  router.get('/nearby', async (req, res) => {
+    const location = typeof req.query.location === 'string' ? req.query.location.trim() : '';
+    const requestedRadius = Number(req.query.radius);
+    const radius = Number.isFinite(requestedRadius)
+      ? Math.min(30000, Math.max(1000, requestedRadius))
+      : 10000;
+
+    if (!location) return res.status(400).json({ error: 'Location is required' });
+    if (location.length > 300) return res.status(400).json({ error: 'Location is too long' });
+
+    try {
+      res.json(await findNearbyPharmacies(location, radius));
+    } catch (error) {
+      console.error('Nearby pharmacy search failed:', error.message);
+      res.status(error.status || 502).json({
+        error: error.message || 'Unable to search nearby pharmacies'
+      });
+    }
   });
 
   // Search medicine across all pharmacies

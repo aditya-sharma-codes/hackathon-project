@@ -3,6 +3,8 @@ const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
 
+require('./config');
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -94,11 +96,13 @@ const authRoutes = require('./routes/auth');
 const consultationRoutes = require('./routes/consultations');
 const prescriptionRoutes = require('./routes/prescriptions');
 const pharmacyRoutes = require('./routes/pharmacy');
+const aiRoutes = require('./routes/ai');
 
 app.use('/api/auth', authRoutes(readData, writeData));
 app.use('/api/consultations', consultationRoutes(readData, writeData));
 app.use('/api/prescriptions', prescriptionRoutes(readData, writeData));
 app.use('/api/pharmacy', pharmacyRoutes(readData, writeData));
+app.use('/api/ai', aiRoutes());
 
 // Health check
 app.get('/api/health', (req, res) => {

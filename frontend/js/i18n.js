@@ -51,7 +51,7 @@ const TRANSLATIONS = {
     sync_now: '🔄 Sync Now',
     no_consults_yet: 'No consultations yet.',
     book_one_now: 'Book one now',
-    greeting_morning: 'morning', greeting_afternoon: 'afternoon', greeting_evening: 'evening',
+    greeting_morning: 'Good morning', greeting_afternoon: 'Good afternoon', greeting_evening: 'Good evening',
 
     // Symptom checker
     ai_symptom_checker: '🩺 AI Symptom Checker',

@@ -49,7 +49,7 @@
   <div id="panel-home" class="content">
     <div style="padding:4px 0 16px;">
       <div style="font-family:'Fraunces',serif;font-size:1.3rem;font-weight:700;color:var(--gray-900);">
-        <span data-i18n="greeting_morning" id="greeting-text">Good</span> <span id="greeting-time">morning</span>, <span id="greeting-name">friend</span> 👋
+        <span id="greeting-time">Good morning</span>, <span id="greeting-name">friend</span> 👋
       </div>
       <div style="font-size:0.85rem;color:var(--text-muted);" data-i18n="how_feeling">How are you feeling today?</div>
     </div>
@@ -109,16 +109,11 @@
         <textarea id="symptom-text" class="form-textarea" data-i18n-ph="symptom_ph" placeholder="e.g. I have fever since 2 days with headache and body ache. Also feeling weak and no appetite..." rows="4"></textarea>
       </div>
       <div class="form-group">
-<<<<<<< HEAD
-        <label class="form-label">Common symptoms (tap to select)</label>
+        <label class="form-label" data-i18n="common_symptoms">Common symptoms (tap to select)</label>
         <div class="symptom-tags" id="symptom-tags" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;"></div>
       </div>
       <div style="padding:12px;background:var(--green-50);border-radius:8px;border:1px solid var(--green-300);margin-bottom:16px;">
         <div style="font-size:0.85rem;font-weight:600;color:var(--green-700);">Selected: <span id="selected-count">0</span> symptom(s)</div>
-=======
-        <label class="form-label" data-i18n="common_symptoms">Common symptoms (tap to select)</label>
-        <div class="symptom-tags" id="symptom-tags"></div>
->>>>>>> origin/main
       </div>
       <div class="form-group">
         <label class="form-label" data-i18n="how_long">How long have you had these symptoms?</label>
@@ -134,7 +129,6 @@
 
     <div id="symptom-results" class="hidden"></div>
 
-<<<<<<< HEAD
     <!-- AI Prediction Section (requires internet) -->
     <div class="card" style="margin-top:16px;border:2px solid var(--blue-600);background:linear-gradient(135deg, rgba(37,99,235,0.05) 0%, rgba(59,130,246,0.05) 100%);">
       <div class="card-header" style="display:flex;align-items:center;gap:8px;color:var(--blue-600);">
@@ -154,15 +148,9 @@
     <div id="ai-results" class="hidden" style="margin-top:16px;"></div>
 
     <div id="consult-after-triage" class="hidden card" style="background:var(--green-50);border-color:var(--green-300);margin-top:16px;">
-      <div style="font-weight:700;margin-bottom:8px;">💬 Need Professional Help?</div>
-      <p style="font-size:0.85rem;color:var(--gray-600);margin-bottom:12px;">Connect with a doctor for personalized diagnosis and treatment.</p>
-      <button class="btn btn-primary btn-full" onclick="switchTab('consult')">Book Consultation →</button>
-=======
-    <div id="consult-after-triage" class="hidden card" style="background:var(--green-50);border-color:var(--green-300);">
       <div style="font-weight:700;margin-bottom:8px;" data-i18n="want_doctor">💬 Want to speak with a doctor?</div>
       <p style="font-size:0.85rem;color:var(--gray-600);margin-bottom:12px;" data-i18n="doctor_review_msg">Our doctors can review your symptoms and provide proper diagnosis.</p>
       <button class="btn btn-primary btn-full" onclick="switchTab('consult')" data-i18n="book_consult_btn">Book Consultation →</button>
->>>>>>> origin/main
     </div>
   </div>
 
@@ -255,18 +243,10 @@
   </div>
 
   <script src="/js/app.js"></script>
-  <script src="/js/symptom-checker.js"></script>
-  <script src="/js/i18n.js"></script>
+  <script src="/js/symptom-checker.js?v=1.5"></script>
+  <script src="/js/i18n.js?v=1.5"></script>
   <script>
-<<<<<<< HEAD
-    // ──────────────────────────────────────────────────────────────
-    // 🔑 PASTE YOUR GEMINI API KEY BELOW (get one free at aistudio.google.com)
-    const GEMINI_API_KEY = 'AIzaSyAocK6M46VfcFxu_vROmSvOELa8ZqFTKsE'; // ← Replace with your actual API key
-    // ──────────────────────────────────────────────────────────────
-
-=======
     // ==================== DASHBOARD VARIABLES ====================
->>>>>>> origin/main
     let currentTriageResult = null;
     let selectedTags = [];
 
@@ -346,7 +326,7 @@
     function runSymptomCheck() {
       const text = document.getElementById('symptom-text').value.trim();
       if (!text && selectedTags.length === 0) {
-        Toast.warning('Please describe your symptoms first');
+        Toast.warning(t('describe_symptoms_first'));
         return;
       }
       const result = SymptomChecker.analyze(text, selectedTags);
@@ -391,50 +371,18 @@
       errorEl.style.display = 'none';
 
       try {
-        if (!GEMINI_API_KEY || GEMINI_API_KEY === 'YOUR_GEMINI_API_KEY_HERE') {
-          throw new Error('Please add your Gemini API key in patient-dashboard.html (look for GEMINI_API_KEY at the top of the script)');
-        }
-
-        const prompt = `You are a medical symptom analyzer for a rural telemedicine system. Based on the following symptoms, provide a brief analysis in simple language that rural patients can understand.
-
-SYMPTOMS: ${input}
-
-Please provide your response in this format:
-1. POSSIBLE CONDITIONS: [List 2-3 most likely conditions in simple terms]
-2. RISK LEVEL: [Low/Medium/High - explain briefly why]
-3. IMMEDIATE ACTIONS: [3-4 simple, actionable steps the patient can take]
-4. WHEN TO SEE DOCTOR: [Clear guidance on urgency]
-5. HOME REMEDIES: [2-3 safe home remedies if applicable]
-
-Important guidelines:
-- Use simple, non-technical language
-- Always include disclaimer that this is not medical diagnosis
-- Be conservative - when in doubt, recommend seeing a doctor
-- Consider rural context with limited access to healthcare
-
-Remember: This is for informational purposes only. Always recommend consulting a doctor for proper diagnosis.`;
-
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{
-              parts: [{ text: prompt }]
-            }]
-          })
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error?.message || 'API request failed');
-        }
-
-        const data = await response.json();
-        const aiText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        const { analysis: aiText } = await API.post('/ai/symptoms', { symptoms: input });
 
         if (!aiText) {
           throw new Error('No response from AI');
         }
+
+        const safeAiText = aiText
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#039;');
 
         // Save to health records
         HealthRecords.save({
@@ -451,7 +399,7 @@ Remember: This is for informational purposes only. Always recommend consulting a
               <span>🤖</span> AI Health Analysis
             </div>
             <div style="font-size:0.9rem;line-height:1.8;color:var(--text);white-space:pre-wrap;word-break:break-word;">
-              ${aiText.replace(/\n/g, '<br>')}
+              ${safeAiText.replace(/\n/g, '<br>')}
             </div>
             <div style="margin-top:16px;padding:12px;background:#fef3c7;border-radius:8px;color:#92400e;font-size:0.82rem;font-weight:500;border:1px solid #fcd34d;">
               <strong>⚠️ Important:</strong> This is an AI-generated analysis for informational purposes only. 
@@ -508,12 +456,8 @@ Remember: This is for informational purposes only. Always recommend consulting a
           ).join('');
         }
       } catch {
-<<<<<<< HEAD
-        document.getElementById('doctor-select').innerHTML = '<option value="">Unable to load doctors</option>';
-=======
         document.getElementById('doctor-select').innerHTML =
           `<option value="">${t('unable_load_doctors')}</option>`;
->>>>>>> origin/main
       }
     }
 
@@ -614,11 +558,7 @@ Remember: This is for informational purposes only. Always recommend consulting a
       el.innerHTML = records.slice(0, 5).map(r => `
         <div class="card" style="padding:12px;margin-bottom:8px;">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-<<<<<<< HEAD
-            <span style="font-weight:600;font-size:0.88rem;">${r.symptoms?.slice(0, 50) || 'Symptom check'}...</span>
-=======
             <span style="font-weight:600;font-size:0.88rem;">${r.symptoms?.slice(0,50) || t('symptom_check')}...</span>
->>>>>>> origin/main
             ${urgencyBadge(r.riskLevel || 'low')}
           </div>
           <div class="text-xs text-muted">${formatDate(r.savedAt)}</div>
@@ -626,39 +566,6 @@ Remember: This is for informational purposes only. Always recommend consulting a
       ).join('');
     }
 
-<<<<<<< HEAD
-=======
-    function runSymptomCheck() {
-      const text = document.getElementById('symptom-text').value.trim();
-      if (!text && selectedTags.length === 0) {
-        Toast.warning(t('describe_symptoms_first'));
-        return;
-      }
-      const result = SymptomChecker.analyze(text, selectedTags);
-      currentTriageResult = result;
-      
-      // Save offline
-      HealthRecords.save({
-        symptoms: text + ' ' + selectedTags.join(', '),
-        riskLevel: result.riskLevel,
-        conditions: result.conditions
-      });
-
-      const resultsEl = document.getElementById('symptom-results');
-      resultsEl.innerHTML = SymptomChecker.renderResult(result);
-      resultsEl.classList.remove('hidden');
-      document.getElementById('consult-after-triage').classList.remove('hidden');
-      resultsEl.scrollIntoView({ behavior: 'smooth' });
-
-      // Pre-fill consult form
-      const symptoms = text + (selectedTags.length ? ' (' + selectedTags.join(', ') + ')' : '');
-      document.getElementById('consult-symptoms').value = symptoms;
-      if (result.riskLevel === 'high') {
-        document.getElementById('urgency-select').value = 'high';
-      }
-    }
-
->>>>>>> origin/main
     async function requestConsultation() {
       const doctorId = document.getElementById('doctor-select').value;
       const symptoms = document.getElementById('consult-symptoms').value.trim();
@@ -737,10 +644,7 @@ Remember: This is for informational purposes only. Always recommend consulting a
         Toast.error(t('user_id_not_found'));
         return;
       }
-<<<<<<< HEAD
       // Simple payload (for demo only; in production use proper encryption)
-=======
->>>>>>> origin/main
       const secret = "gramhealth-secret";
       const payload = btoa(user.id + ':' + secret);
       QRCode.toCanvas(document.getElementById('qr-canvas'), payload, {

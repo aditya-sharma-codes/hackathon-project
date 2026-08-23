@@ -189,19 +189,28 @@ cd gramhealth/backend
 npm install
 ```
 
-### Step 2: Generate PWA icons
+### Step 2: Configure environment
+```bash
+cd gramhealth
+cp .env.example .env
+```
+Set `JWT_SECRET` and `GEMINI_API_KEY` in `.env`. The Gemini credential is used only by the backend and is never sent to the browser.
+
+Nearby-pharmacy searches use OpenStreetMap through Nominatim and Overpass, with Photon as a geocoding fallback. The backend caches searches, limits Nominatim to one request per second, identifies the application, and displays OpenStreetMap attribution. The public services are intended for moderate, user-triggered traffic; review the [Nominatim usage policy](https://operations.osmfoundation.org/policies/nominatim/) before production deployment and configure the service URLs in `.env` if you use hosted or self-managed alternatives.
+
+### Step 3: Generate PWA icons
 ```bash
 cd gramhealth
 node generate-icons.js
 ```
 
-### Step 3: Start the server
+### Step 4: Start the server
 ```bash
 cd gramhealth/backend
 node server.js
 ```
 
-### Step 4: Open in browser
+### Step 5: Open in browser
 ```
 http://localhost:3000
 ```

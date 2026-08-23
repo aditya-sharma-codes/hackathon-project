@@ -175,17 +175,65 @@ const SymptomChecker = {
     'Snake bite', 'Dog bite', 'Dehydration', 'Allergy', 'Heat stroke'
   ],
 
+  // A single generic symptom (for example, "headache") is not enough to
+  // suggest a condition. These specific terms may stand on their own.
+  singleMatchKeywords: new Set([
+    'cold', 'runny nose', 'sneezing', 'sore throat', 'nasal congestion',
+    'high fever', 'malaria', 'cyclic fever', 'vomiting after fever',
+    'dengue', 'high fever sudden', 'bleeding gums',
+    'diarrhea', 'loose motions',
+    'burning urination', 'frequent urination', 'painful urination', 'uti', 'cloudy urine',
+    'high bp', 'high blood pressure',
+    'diabetes', 'high sugar', 'excessive thirst',
+    'chest pain', 'heart pain', 'left arm pain', 'jaw pain with chest', 'heart attack', 'palpitation severe',
+    'asthma', 'breathlessness', 'wheezing', 'difficulty breathing', 'chest tightness breathing', 'shortness of breath',
+    'wound', 'infection skin', 'pus', 'abscess',
+    'anemia', 'low hemoglobin',
+    'typhoid', 'prolonged fever', 'week long fever', 'rose spots',
+    'red eye', 'eye discharge', 'swollen eye', 'pink eye',
+    'bleeding during pregnancy', 'abdominal pain pregnancy', 'reduced fetal movement',
+    'snake bite', 'fang marks',
+    'dog bite', 'animal bite', 'rabies', 'bite wound',
+    'dehydration', 'dry mouth', 'not urinating', 'dark urine',
+    'heat stroke', 'sun stroke'
+  ]),
+
+  emergencyKeywords: new Set([
+    'chest pain', 'heart pain', 'left arm pain', 'jaw pain with chest', 'heart attack', 'palpitation severe',
+    'breathlessness', 'difficulty breathing', 'shortness of breath',
+    'bleeding during pregnancy', 'reduced fetal movement',
+    'snake bite', 'fang marks', 'heat stroke', 'sun stroke', 'swelling face'
+  ]),
+
+  matchesKeyword(text, keyword) {
+    const escaped = keyword
+      .toLowerCase()
+      .replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+      .replace(/\s+/g, '\\s+');
+    return new RegExp(`(?:^|\\W)${escaped}(?=$|\\W)`, 'i').test(text);
+  },
+
   // ─── Analyze Symptoms ────────────────────────────────────────────────
   analyze(symptomsText, selectedSymptoms = []) {
     const combined = (symptomsText + ' ' + selectedSymptoms.join(' ')).toLowerCase();
     const scores = [];
 
     for (const condition of this.conditions) {
-      let score = 0;
-      for (const kw of condition.keywords) {
-        if (combined.includes(kw.toLowerCase())) score++;
+      const matchedKeywords = condition.keywords
+        .filter(kw => this.matchesKeyword(combined, kw));
+      const hasSpecificSingleMatch = matchedKeywords
+        .some(kw => this.singleMatchKeywords.has(kw.toLowerCase()));
+      const minimumMatches = condition.risk === 'high' ? 3 : 2;
+
+      if (matchedKeywords.length < minimumMatches && !hasSpecificSingleMatch) continue;
+
+      let risk = condition.risk;
+      if (condition.name === 'Allergic Reaction' &&
+          !matchedKeywords.some(kw => this.emergencyKeywords.has(kw.toLowerCase()))) {
+        risk = 'medium';
       }
-      if (score > 0) scores.push({ ...condition, score });
+
+      scores.push({ ...condition, risk, score: matchedKeywords.length, matchedKeywords });
     }
 
     scores.sort((a, b) => b.score - a.score);
@@ -214,7 +262,8 @@ const SymptomChecker = {
       recommendation: primary.recommendation,
       medicines: allMeds,
       warning: primary.warning,
-      emergency: top.some(c => c.warning?.includes('URGENT') || c.warning?.includes('EMERGENCY'))
+      emergency: top.some(c => c.matchedKeywords
+        .some(kw => this.emergencyKeywords.has(kw.toLowerCase())))
     };
   },
 
