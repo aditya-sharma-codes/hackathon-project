@@ -1,7 +1,7 @@
 // ─── GramHealth Service Worker ────────────────────────────────────────────
-const CACHE_NAME = 'gramhealth-v1.7';
-const STATIC_CACHE = 'gramhealth-static-v1.7';
-const DYNAMIC_CACHE = 'gramhealth-dynamic-v1.7';
+const CACHE_NAME = 'gramhealth-v1.8';
+const STATIC_CACHE = 'gramhealth-static-v1.8';
+const DYNAMIC_CACHE = 'gramhealth-dynamic-v1.8';
 
 const STATIC_ASSETS = [
   '/',
@@ -61,6 +61,12 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Navigations should prefer the latest HTML instead of a stale cached page.
+  if (request.mode === 'navigate') {
+    event.respondWith(networkFirstPage(request));
+    return;
+  }
+
   // Static assets: cache first
   event.respondWith(cacheFirst(request));
 });
@@ -104,6 +110,26 @@ async function networkFirst(request) {
     return new Response(JSON.stringify({ error: 'Offline', offline: true }), {
       status: 503,
       headers: { 'Content-Type': 'application/json' }
+    });
+  }
+}
+
+async function networkFirstPage(request) {
+  try {
+    const response = await fetch(request);
+    if (response.ok) {
+      const cache = await caches.open(DYNAMIC_CACHE);
+      cache.put(request, response.clone());
+    }
+    return response;
+  } catch {
+    const cached = await caches.match(request);
+    if (cached) return cached;
+
+    const offlinePage = await caches.match('/index.html');
+    return offlinePage || new Response('Offline - Please check your connection', {
+      status: 503,
+      headers: { 'Content-Type': 'text/plain' }
     });
   }
 }

@@ -28,16 +28,16 @@ module.exports = (readData, writeData) => {
   // Find real mapped pharmacies near a typed location or lat,lng pair.
   router.get('/nearby', async (req, res) => {
     const location = typeof req.query.location === 'string' ? req.query.location.trim() : '';
-    const requestedRadius = Number(req.query.radius);
-    const radius = Number.isFinite(requestedRadius)
-      ? Math.min(30000, Math.max(1000, requestedRadius))
+    const requestedRadiusKm = Number(req.query.radius);
+    const radiusMetres = Number.isFinite(requestedRadiusKm)
+      ? Math.min(30, Math.max(1, requestedRadiusKm)) * 1000
       : 10000;
 
     if (!location) return res.status(400).json({ error: 'Location is required' });
     if (location.length > 300) return res.status(400).json({ error: 'Location is too long' });
 
     try {
-      res.json(await findNearbyPharmacies(location, radius));
+      res.json(await findNearbyPharmacies(location, radiusMetres));
     } catch (error) {
       console.error('Nearby pharmacy search failed:', error.message);
       res.status(error.status || 502).json({
